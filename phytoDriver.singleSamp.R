@@ -178,47 +178,13 @@ coeff.mat <- cbind(coeff.out$BUGSoutput$sims.list$lith.m, coeff.out$BUGSoutput$s
 ############################################################################################
 
 
-# Proxy data to evaluate against 
+# Read in proxy data to evaluate against 
 ############################################################################################
-  # 2ka
-  len.lith.data.a = 8
-  len.lith.data.sd.a = 0.25
-  d13C.pf.data.a = 1.96
-  d13C.pf.data.sd.a = 0.1
-  d13C.marker.data.a = -25.27
-  d13C.marker.data.sd.a = 0.69
-  Uk.data.a = 0.9240
-  Uk.data.sd.a = 0.03
+prox.in <- read.csv('data/timeseries.data.csv')
+prox.in <- prox.in[,c(1:9)]
+names(prox.in) <- c("age","d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", "d13Cpf.data.sd", 
+                    "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")
 
-  # 40.8ka
-  len.lith.data.b = 8
-  len.lith.data.sd.b = 0.25
-  d13C.pf.data.b = 1.44
-  d13C.pf.data.sd.b = 0.1
-  d13C.marker.data.b = -23.87
-  d13C.marker.data.sd.b = 0.44
-  Uk.data.b = 0.8664
-  Uk.data.sd.b = 0.03
-  
-  # 348.4ka
-  len.lith.data.c = 8
-  len.lith.data.sd.c = 0.25
-  d13C.pf.data.c = 1.18
-  d13C.pf.data.sd.c = 0.1
-  d13C.marker.data.c = -22.92
-  d13C.marker.data.sd.c = 0.38
-  Uk.data.c = 0.922
-  Uk.data.sd.c = 0.03
-  
-  # 403.1ka
-  len.lith.data.d = 8
-  len.lith.data.sd.d = 0.25
-  d13C.pf.data.d = 1.88
-  d13C.pf.data.sd.d = 0.1
-  d13C.marker.data.d = -25.55
-  d13C.marker.data.sd.d = 0.44
-  Uk.data.d = 0.949
-  Uk.data.sd.d = 0.03
 ############################################################################################
 
 
@@ -248,14 +214,14 @@ rm.sd = 0.25*10^-6
 # Select data to pass to jags 
 ############################################################################################
 data.pass2ka = list("coeff.mat" = coeff.mat,
-                      "len.lith.data" = len.lith.data.a,
-                      "len.lith.data.sd" = len.lith.data.sd.a,
-                      "d13C.pf.data" = d13C.pf.data.a,
-                      "d13C.pf.data.sd" = d13C.pf.data.sd.a,
-                      "d13C.marker.data" = d13C.marker.data.a,
-                      "d13C.marker.data.sd" = d13C.marker.data.sd.a,
-                      "Uk.data" = Uk.data.a,
-                      "Uk.data.sd" = Uk.data.sd.a,
+                      "len.lith.data" = prox.in$len.lith.data[1],
+                      "len.lith.data.sd" = prox.in$len.lith.data.sd[1],
+                      "d13C.pf.data" = prox.in$d13Cpf.data[1],
+                      "d13C.pf.data.sd" = prox.in$d13Cpf.data.sd[1],
+                      "d13C.marker.data" = prox.in$d13Cmarker.data[1],
+                      "d13C.marker.data.sd" = prox.in$d13Cmarker.data.sd[1],
+                      "Uk.data" = prox.in$Uk.data[1],
+                      "Uk.data.sd" = prox.in$Uk.data.sd[1],
                       "tempC.m" = tempC.m,
                       "tempC.sd" = tempC.sd,
                       "sal.m" = sal.m,
@@ -270,14 +236,14 @@ data.pass2ka = list("coeff.mat" = coeff.mat,
                       "rm.sd" = rm.sd) 
 
 data.pass40.8ka = list("coeff.mat" = coeff.mat,
-                      "len.lith.data" = len.lith.data.b,
-                      "len.lith.data.sd" = len.lith.data.sd.b,
-                      "d13C.pf.data" = d13C.pf.data.b,
-                      "d13C.pf.data.sd" = d13C.pf.data.sd.b,
-                      "d13C.marker.data" = d13C.marker.data.b,
-                      "d13C.marker.data.sd" = d13C.marker.data.sd.b,
-                      "Uk.data" = Uk.data.b,
-                      "Uk.data.sd" = Uk.data.sd.b,
+                      "len.lith.data" = prox.in$len.lith.data[2],
+                      "len.lith.data.sd" = prox.in$len.lith.data.sd[2],
+                      "d13C.pf.data" = prox.in$d13Cpf.data[2],
+                      "d13C.pf.data.sd" = prox.in$d13Cpf.data.sd[2],
+                      "d13C.marker.data" = prox.in$d13Cmarker.data[2],
+                      "d13C.marker.data.sd" = prox.in$d13Cmarker.data.sd[2],
+                      "Uk.data" = prox.in$Uk.data[2],
+                      "Uk.data.sd" = prox.in$Uk.data.sd[2],
                       "tempC.m" = tempC.m,
                       "tempC.sd" = tempC.sd,
                       "sal.m" = sal.m,
@@ -292,14 +258,14 @@ data.pass40.8ka = list("coeff.mat" = coeff.mat,
                       "rm.sd" = rm.sd) 
 
 data.pass348ka = list("coeff.mat" = coeff.mat,
-                  "len.lith.data" = len.lith.data.c,
-                  "len.lith.data.sd" = len.lith.data.sd.c,
-                  "d13C.pf.data" = d13C.pf.data.c,
-                  "d13C.pf.data.sd" = d13C.pf.data.sd.c,
-                  "d13C.marker.data" = d13C.marker.data.c,
-                  "d13C.marker.data.sd" = d13C.marker.data.sd.c,
-                  "Uk.data" = Uk.data.c,
-                  "Uk.data.sd" = Uk.data.sd.c,
+                  "len.lith.data" = prox.in$len.lith.data[3],
+                  "len.lith.data.sd" = prox.in$len.lith.data.sd[3],
+                  "d13C.pf.data" = prox.in$d13Cpf.data[3],
+                  "d13C.pf.data.sd" = prox.in$d13Cpf.data.sd[3],
+                  "d13C.marker.data" = prox.in$d13Cmarker.data[3],
+                  "d13C.marker.data.sd" = prox.in$d13Cmarker.data.sd[3],
+                  "Uk.data" = prox.in$Uk.data[3],
+                  "Uk.data.sd" = prox.in$Uk.data.sd[3],
                   "tempC.m" = tempC.m,
                   "tempC.sd" = tempC.sd,
                   "sal.m" = sal.m,
@@ -314,14 +280,14 @@ data.pass348ka = list("coeff.mat" = coeff.mat,
                   "rm.sd" = rm.sd) 
 
 data.pass403ka = list("coeff.mat" = coeff.mat,
-                    "len.lith.data" = len.lith.data.d,
-                    "len.lith.data.sd" = len.lith.data.sd.d,
-                    "d13C.pf.data" = d13C.pf.data.d,
-                    "d13C.pf.data.sd" = d13C.pf.data.sd.d,
-                    "d13C.marker.data" = d13C.marker.data.d,
-                    "d13C.marker.data.sd" = d13C.marker.data.sd.d,
-                    "Uk.data" = Uk.data.d,
-                    "Uk.data.sd" = Uk.data.sd.d,
+                    "len.lith.data" = prox.in$len.lith.data[4],
+                    "len.lith.data.sd" = prox.in$len.lith.data.sd[4],
+                    "d13C.pf.data" = prox.in$d13Cpf.data[4],
+                    "d13C.pf.data.sd" = prox.in$d13Cpf.data.sd[4],
+                    "d13C.marker.data" = prox.in$d13Cmarker.data[4],
+                    "d13C.marker.data.sd" = prox.in$d13Cmarker.data.sd[4],
+                    "Uk.data" = prox.in$Uk.data[4],
+                    "Uk.data.sd" = prox.in$Uk.data.sd[4],
                     "tempC.m" = tempC.m,
                     "tempC.sd" = tempC.sd,
                     "sal.m" = sal.m,
