@@ -43,13 +43,14 @@ rm.v <- paste("rm[", step.vector, "]", sep="")
 rm.out <- parms.out[c(rm.v),]
 rm.out <- data.frame(ages.prox,rm.out)
 
+iccc <- read.csv("data/icecoreco2comp.csv")
 
 ###########################################################################################
 # 95% CI plots for each time step 
 ###########################################################################################
 
 
-xmax <- 500
+xmax <- 800
 xmin <- -10
 
 # Plot parms of interest
@@ -97,10 +98,15 @@ ggplot() +
 ggplot() + 
   geom_errorbar(data = pco2.out, mapping = aes(x=ages.prox, y=mean, ymin=X2.5., ymax=X97.5.), color="gray", width=0) +
   geom_point(data = pco2.out, mapping = aes(x=ages.prox, y=mean), color = "black") +
+  geom_line(data=iccc, mapping = aes(x=age, y=iceco2), color = "red") +
   ylim(150,350) +
   xlim(xmin,xmax) +
   labs(x= "age (ka)", y = "pCO2 (uatm)") +   
   theme_bw()
+
+
+# View inversion summary 
+View(inv.out$BUGSoutput$summary)
 
 
 

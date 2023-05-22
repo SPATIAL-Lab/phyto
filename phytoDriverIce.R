@@ -182,10 +182,10 @@ coeff.mat <- cbind(coeff.out$BUGSoutput$sims.list$lith.m, coeff.out$BUGSoutput$s
 ############################################################################################
 
 # Read in proxy time series data
-prox.in <- read.csv('data/timeseriesMD012392.csv')
-prox.in <- prox.in[,c(1:9)]
+prox.in <- read.csv('data/timeseries688B.csv')
+prox.in <- prox.in[,c(1:10)]
 names(prox.in) <- c("age","d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", "d13Cpf.data.sd", 
-                    "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")
+                    "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")
 
 # Setup age range and bins 
 ages.prox <- unique(round(prox.in$age))
@@ -201,6 +201,7 @@ clean.d13Cmarker <- prox.in[complete.cases(prox.in$d13Cmarker.data), ]
 clean.d13Cpf <- prox.in[complete.cases(prox.in$d13Cpf.data), ]
 clean.len.lith <- prox.in[complete.cases(prox.in$len.lith.data), ]
 clean.Uk <- prox.in[complete.cases(prox.in$Uk.data), ]
+clean.iceco2 <- prox.in[complete.cases(prox.in$iceco2.data), ]
 
 # Vector of age indexes that contain d13Cmarker proxy data (with duplicates)
 ai.d13Cmarker <- c(clean.d13Cmarker$ai)    
@@ -214,8 +215,11 @@ ai.len.lith <- c(clean.len.lith$ai)
 # Vector of age indexes that contain Uk'37 proxy data (with duplicates)
 ai.Uk <- c(clean.Uk$ai)
 
+# Vector of age indexes that contain Uk'37 proxy data (with duplicates)
+ai.iceco2 <- c(clean.iceco2$ai)
+
 # Vector of age indexes for all data
-ai.all <- c(ai.d13Cmarker, ai.d13Cpf, ai.len.lith, ai.Uk)
+ai.all <- c(ai.d13Cmarker, ai.d13Cpf, ai.len.lith, ai.Uk, ai.iceco2)
 
 # Index vector which contains each environmental time step that has one or more proxy data
 
@@ -228,6 +232,7 @@ ai.d13Cmarker <- match(ai.d13Cmarker, ai.prox)
 ai.d13Cpf <- match(ai.d13Cpf, ai.prox)
 ai.len.lith <- match(ai.len.lith, ai.prox)
 ai.Uk <- match(ai.Uk, ai.prox)
+ai.iceco2 <- match(ai.iceco2, ai.prox)
 
 ############################################################################################
 
@@ -271,6 +276,7 @@ data.pass = list("coeff.mat" = coeff.mat,
                   "len.lith.data.sd" = clean.len.lith$len.lith.data.sd,
                   "Uk.data" = clean.Uk$Uk.data,
                   "Uk.data.sd" = clean.Uk$Uk.data.sd,
+                  "iceco2.data" = clean.iceco2$iceco2.data,
                   "n.steps" = n.steps,
                   "dt" = dt,
                   "ages.prox" = ages.prox,
@@ -279,6 +285,7 @@ data.pass = list("coeff.mat" = coeff.mat,
                   "ai.d13Cpf" = ai.d13Cpf,
                   "ai.len.lith" = ai.len.lith, 
                   "ai.Uk" = ai.Uk, 
+                  "ai.iceco2" = ai.iceco2,
                   "tempC.m" = tempC.m,
                   "tempC.p" = tempC.p,
                   "sal.m" = sal.m,
@@ -303,7 +310,7 @@ parms2 = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b")
 
 # Run the inversion using jags 
 ############################################################################################
-inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM.R", parameters.to.save = parms2,
+inv.out = jags.parallel(data = data.pass, model.file = "phytoPSMIce.R", parameters.to.save = parms2,
                           inits = NULL, n.chains = 3, n.iter = 10000,
                           n.burnin = 2000, n.thin = 10)
 ############################################################################################

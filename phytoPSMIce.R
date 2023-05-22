@@ -23,7 +23,11 @@ for (i in 1:length(ai.Uk)){
   Uk.data[i] ~ dnorm(Uk[ai.Uk[i]], Uk.p[i])
   Uk.p[i] = 1/(Uk.data.sd[i])^2  # Gaussian precision for Uk'37 measurements from sd
 }
-
+  
+for (i in 1:length(ai.iceco2)){
+  iceco2.data[i] ~ dnorm(pco2[ai.iceco2[i]], iceco2.p)
+}
+  iceco2.p = 1/(6)^2  # Gaussian precision for Uk'37 measurements from sd
 ############################################################################################  
   
 # Constants - time invariant

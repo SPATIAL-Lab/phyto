@@ -165,8 +165,8 @@ co.r ~ dnorm(r.co.lr, 1/(r.se.lr)^2)
 y.int ~ dnorm(y.int.lr, 1/(y.int.se.lr)^2) 
 }"
 
-writeLines(model.string, con = "model.out/coeff.model.txt")
-coeff.out = jags.parallel(data=data.pass.coeff, model.file = "model.out/coeff.model.txt", parameters.to.save = parms1,
+writeLines(model.string, con = "model_out/coeff_model.txt")
+coeff.out = jags.parallel(data=data.pass.coeff, model.file = "model_out/coeff_model.txt", parameters.to.save = parms1,
                           inits = NULL, n.chains = 3, n.iter = 8000,
                           n.burnin = 2000, n.thin = 5)
 
@@ -180,7 +180,7 @@ coeff.mat <- cbind(coeff.out$BUGSoutput$sims.list$lith.m, coeff.out$BUGSoutput$s
 
 # Read in proxy data to evaluate against 
 ############################################################################################
-prox.in <- read.csv('data/timeseries.data.csv')
+prox.in <- read.csv('data/timeseries_data.csv')
 prox.in <- prox.in[,c(1:9)]
 names(prox.in) <- c("age","d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", "d13Cpf.data.sd", 
                     "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")
@@ -306,22 +306,22 @@ data.pass403ka = list("coeff.mat" = coeff.mat,
 parms2 = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b")
 
 # Run the inversion using jags - 2 ka ODP Hole 688B
-inv.out.2ka = jags.parallel(data = data.pass2ka, model.file = "phytoPSM.singleSamp.R", parameters.to.save = parms2,
+inv.out.2ka = jags.parallel(data = data.pass2ka, model.file = "phytoPSM_singleSamp.R", parameters.to.save = parms2,
                               inits = NULL, n.chains = 3, n.iter = 10000,
                               n.burnin = 2000, n.thin = 10)
 
 # Run the inversion using jags - 40.8 ka ODP Hole 688B
-inv.out.40.8ka = jags.parallel(data = data.pass40.8ka, model.file = "phytoPSM.singleSamp.R", parameters.to.save = parms2,
+inv.out.40.8ka = jags.parallel(data = data.pass40.8ka, model.file = "phytoPSM_singleSamp.R", parameters.to.save = parms2,
                               inits = NULL, n.chains = 3, n.iter = 10000,
                               n.burnin = 2000, n.thin = 10)
 
 # Run the inversion using jags - 348.4 ka ODP Hole 688B
-inv.out.348ka = jags.parallel(data = data.pass348ka, model.file = "phytoPSM.singleSamp.R", parameters.to.save = parms2,
+inv.out.348ka = jags.parallel(data = data.pass348ka, model.file = "phytoPSM_singleSamp.R", parameters.to.save = parms2,
                           inits = NULL, n.chains = 3, n.iter = 10000,
                           n.burnin = 2000, n.thin = 10)
 
 # Run the inversion using jags - 403.1 ka ODP Hole 688B
-inv.out.403ka = jags.parallel(data=data.pass403ka, model.file = "phytoPSM.singleSamp.R", parameters.to.save = parms2,
+inv.out.403ka = jags.parallel(data=data.pass403ka, model.file = "phytoPSM_singleSamp.R", parameters.to.save = parms2,
                         inits = NULL, n.chains = 3, n.iter = 10000,
                         n.burnin = 2000, n.thin = 10)
 ############################################################################################
