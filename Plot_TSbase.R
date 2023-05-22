@@ -18,6 +18,7 @@ library(tidyverse)
 step.vector <- seq(1, n.steps, by=1)
 parms.out <- inv.out$BUGSoutput$summary
 parms.out <- data.frame(parms.out)
+ages.prox <- rev(ages.prox)
 
 tempC.v <- paste("tempC[", step.vector, "]", sep="")
 tempC.out <- parms.out[c(tempC.v),]
@@ -97,8 +98,8 @@ ggplot() +
 
 ggplot() + 
   geom_errorbar(data = pco2.out, mapping = aes(x=ages.prox, y=mean, ymin=X2.5., ymax=X97.5.), color="gray", width=0) +
-  geom_point(data = pco2.out, mapping = aes(x=ages.prox, y=mean), color = "black") +
   geom_line(data=iccc, mapping = aes(x=age, y=iceco2), color = "red") +
+  geom_point(data = pco2.out, mapping = aes(x=ages.prox, y=mean), color = "black") +
   ylim(150,350) +
   xlim(xmin,xmax) +
   labs(x= "age (ka)", y = "pCO2 (uatm)") +   
