@@ -95,8 +95,8 @@ parms1 = c("mui", "diam.cocco", "rm", "po4",  "lith.m", "lith.b", "diam.m", "dia
 # data to pass to jags
 data.pass.coeff = list("po4.co.lr" = po4.co.lr, "po4.se.lr" = po4.se.lr, "r.co.lr" = r.co.lr, "r.se.lr" = r.se.lr,
                  "y.int.lr" = y.int.lr, "y.int.se.lr" = y.int.se.lr, "cell.r.m" = cell.r.m, "cell.r.mu"=cell.r.mu, 
-                 "cell.r.b"=cell.r.b, "cell.r.bu"=cell.r.bu, "lith.r.m" = cell.r.m, "lith.r.mu"=cell.r.mu, 
-                 "lith.r.b"=cell.r.b, "lith.r.bu"=cell.r.bu,"cal.po4" = cal.po4, "cal.radius" = cal.radius, 
+                 "cell.r.b"= cell.r.b, "cell.r.bu"= cell.r.bu, "lith.r.m" = lith.r.m, "lith.r.mu"= lith.r.mu, 
+                 "lith.r.b"= lith.r.b, "lith.r.bu"= lith.r.bu,"cal.po4" = cal.po4, "cal.radius" = cal.radius, 
                  "nrow.cal.df" = nrow.cal.df, "clean.rad" = clean.rad, "clean.po4" = clean.po4, "clean.mui" = clean.mui, 
                  "clean.diamcc" = clean.diamcc, "rad.index" = rad.index, "po4.index" = po4.index, 
                  "mui.index" = mui.index, "diamcc.index" = diamcc.index)
@@ -178,11 +178,48 @@ coeff.mat <- cbind(coeff.out$BUGSoutput$sims.list$lith.m, coeff.out$BUGSoutput$s
 ############################################################################################
 
 
+# Generate look up tables for equilibrium constants 
+############################################################################################
+# Set upper and lower STP bounds for equil constant array 
+tempC.lb = 0
+tempC.ub = 65
+sal.lb = 15
+sal.ub = 60
+
+# Step increments for sal (ppt) temp (degrees C) and press (bar)
+t.inc = 0.25
+s.inc = 0.25
+
+# Ranges of variables over which to evaluate
+tempC.vr = seq(tempC.lb, tempC.ub, by=t.inc)
+sal.vr = seq(sal.lb, sal.ub, by=s.inc)
+
+# Initiate arrays 
+temp.vr = c(1:length(tempC.vr))
+base2Darray = c(1:(length(tempC.vr)*length(sal.vr)))
+dim(base2Darray) = c((length(tempC.vr)), (length(sal.vr)))
+Ksw_sta = base2Darray
+K0a = base2Darray
+
+# Constant (cm^3 bar mol^-1 K^-1)
+R <- 83.131 
+
+# Calculate 2D array for K0 and Ksw (temp and sal dependent) 
+for (i in 1:length(tempC.vr)){
+  for (j in 1:length(sal.vr)){
+    temp.vr[i] <- tempC.vr[i]+273.15
+    Ksw_sta[i,j] <- exp(148.96502-13847.26/temp.vr[i]-23.6521*(log(temp.vr[i]))+(118.67/temp.vr[i]-5.977+1.0495*(log(temp.vr[i])))*(sal.vr[j]^0.5)-0.01615*sal.vr[j])
+    K0a[i,j] <- exp(9345.17/temp.vr[i]-60.2409+23.3585*(log(temp.vr[i]/100))+sal.vr[j]*(0.023517-0.00023656*temp.vr[i]+0.0047036*((temp.vr[i]/100)^2)))
+  }
+}
+############################################################################################
+
+
 # Load proxy data to evaluate against 
 ############################################################################################
 
 # Read in proxy time series data
-prox.in <- read.csv('data/timeseriesMD012392.csv')
+prox.in <- read.csv('data/timeseries688B.csv')
 prox.in <- prox.in[,c(1:9)]
 names(prox.in) <- c("age","d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", "d13Cpf.data.sd", 
                     "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")
@@ -255,7 +292,7 @@ po4.m = 1.2
 po4.p = 1/0.2^2
 
 # Mean cell radius (m)
-rm.m = 2.5*10^-6
+rm.m = 1.5*10^-6
 rm.p = 1/(0.25*10^-6)^2
 ############################################################################################
 
@@ -263,6 +300,12 @@ rm.p = 1/(0.25*10^-6)^2
 # Select data to pass to jags 
 ############################################################################################
 data.pass = list("coeff.mat" = coeff.mat,
+                  "K0a" = K0a,
+                  "Ksw_sta" = Ksw_sta,
+                  "sal.lb" = sal.lb,
+                  "tempC.lb" = tempC.lb,
+                  "t.inc" = t.inc,
+                  "s.inc" = s.inc,
                   "d13Cmarker.data" = clean.d13Cmarker$d13Cmarker.data,
                   "d13Cmarker.data.sd" = clean.d13Cmarker$d13Cmarker.data.sd,
                   "d13Cpf.data" = clean.d13Cpf$d13Cpf.data,
@@ -303,7 +346,7 @@ parms2 = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b")
 
 # Run the inversion using jags 
 ############################################################################################
-inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM.R", parameters.to.save = parms2,
+inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_lutKs.R", parameters.to.save = parms2,
                           inits = NULL, n.chains = 3, n.iter = 10000,
                           n.burnin = 2000, n.thin = 10)
 ############################################################################################

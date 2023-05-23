@@ -32,9 +32,14 @@ Uk.sl <- 29.876
 Uk.int <- 1.334
 Uk <- (tempC + Uk.int)/Uk.sl
 
-# Calculate aqueous CO2 from atmospheric CO2 with Henry's law (carb chem) 
+# Pull equil constants from look up tables
 temp <- tempC + 273.15
-K0 <- exp(9345.17/temp-60.2409+23.3585*(log(temp/100))+sal*(0.023517-0.00023656*temp+0.0047036*((temp/100)^2)))
+t.index <- round((tempC-tempC.lb)/t.inc)+1
+s.index <- round((sal-sal.lb)/s.inc)+1
+K0 <- K0a[t.index, s.index]
+Ksw.noP <- Ksw_sta[t.index, s.index]
+
+# Calculate aqueous CO2 from atmospheric CO2 with Henry's law (carb chem) 
 fco2 <- pco2*0.9968
 co2 <- fco2*K0*10^-3 # mol/m^3 (uM)
 
@@ -62,7 +67,6 @@ DT <- DTi*(0.9508 - 7.389*(10^-4)*tempC)
 # Calculate rK (reacto-diffusive length) from SSS and SST using eqns. 6 and 7 of Rau et al. (1996)
 k.one <- 8500 * ((exp(-(62800/(R.gc*temp)))) / (exp(-(62800/(R.gc*298.15)))))
 k.two <- (3*10^-5) * ((exp(-(62800/(R.gc*temp)))) / (exp(-(62800/(R.gc*298.15)))))
-Ksw.noP <- exp(148.96502-13847.26/temp-23.6521*(log(temp))+(118.67/temp-5.977+1.0495*(log(temp)))*(sal^0.5)-0.01615*sal)
 pH.const <- 8
 hyd.const <- 10^(-pH.const)
 hydrox <- Ksw.noP / hyd.const

@@ -90,6 +90,7 @@ ggplot() +
 
 ggplot() + 
   geom_errorbar(data = tempC.out, mapping = aes(x=ages.prox, y=mean, ymin=X2.5., ymax=X97.5.), color="gray", width=0) +
+  geom_line(data=iccc, mapping = aes(x=age, y=iceco2/10), color = "red") +
   geom_point(data = tempC.out, mapping = aes(x=ages.prox, y=mean), color = "black") +
   ylim(15,35) +
   xlim(xmin,xmax) +

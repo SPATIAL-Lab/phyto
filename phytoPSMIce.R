@@ -47,7 +47,7 @@ P.c ~ dnorm(5.09*10^-5, 1/(0.16*10^-5)^2)
 # Uk'37 temperature sensitvity (Conte et al., 2006; sediment - AnnO linear model)
 # STAND DEV NEEDS TO BE UPDATED! Determine slope and intercept via inversion 
 Uk.sl <- 29.876 
-Uk.int ~ dnorm(1.334, 1/(1.1)^2)
+Uk.int ~ dnorm(1.334, 1/(0.5)^2)
 
 # Sample coefficient matrix for mui = f(po4, rm) relationship
 coeff.ind ~ dcat(1:length(coeff.mat[,1]))
@@ -63,58 +63,62 @@ hyd.const <- 10^(-pH.const)
 # Proxy System Model
 ############################################################################################  
 for (i in 1:length(ai.prox)){
-# Calculate Uk'37 from temperature 
-Uk[i] <- (tempC[ai.prox[i]] + Uk.int)/Uk.sl
-
-# Calculate aqueous CO2 from atmospheric CO2 with Henry's law (carb chem) 
-temp[i] <- tempC[ai.prox[i]] + 273.15
-K0[i] <- exp(9345.17/temp[i]-60.2409+23.3585*(log(temp[i]/100))+sal[ai.prox[i]]*(0.023517-0.00023656*temp[i]+0.0047036*((temp[i]/100)^2)))
-fco2[i] <- pco2[ai.prox[i]]*0.9968
-co2[i] <- fco2[i]*K0[i]*10^-3 # mol/m^3 (uM)
-
-# Calculate instantaneous growth rate (mu,i) from [PO4] and rmean by 
-# sampling Bayesian model coefficients and intercepts
-mui[i] <- coeff.mat[coeff.ind,5]*po4[ai.prox[i]] + coeff.mat[coeff.ind,6]*rm[ai.prox[i]] + coeff.mat[coeff.ind,7]
-
-# Calculate length of the coccolith and diameter of coccosphere from mean radius (rm)
-len.lith[i] <- (rm[ai.prox[i]]*10^6)*coeff.mat[coeff.ind,1] + coeff.mat[coeff.ind,2]  # in um
-diam.cocco[i] <- (rm[ai.prox[i]]*10^6)*coeff.mat[coeff.ind,3] + coeff.mat[coeff.ind,4] # in um
-
-# Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
-cell.vol[i] <- 4/3*3.141593*((rm[ai.prox[i]])^3) # in m^3
-cell.vol.um[i] <- 4/3*3.141593*((rm[ai.prox[i]]*10^6)^3) # in um^3
-gam.c[i] <- 3.154*(10^-14)*cell.vol.um[i]
-Qr[i] <- mui[i] * gam.c[i]
-Qs[i] <- Qr[i] / (4*3.141593*(rm[ai.prox[i]]^2))
+  # Calculate Uk'37 from temperature 
+  Uk[i] <- (tempC[ai.prox[i]] + Uk.int)/Uk.sl
+  temp[i] <- tempC[ai.prox[i]] + 273.15
   
-# Calculate DT (temperature-sensitive diffusivity of C02(aq)in seawater) from SST using eqn. 8 of Rau et al. (1996)
-DTi[i] <- 5.019*(10^-6)*exp(-(19510/(R.gc*temp[i])))
-DT[i] <- DTi[i]*(0.9508 - 7.389*(10^-4)*tempC[ai.prox[i]])
-
-# Calculate rK (reacto-diffusive length) from SSS and SST using eqns. 6 and 7 of Rau et al. (1996)
-k.one[i] <- 8500 * ((exp(-(62800/(R.gc*temp[i])))) / (exp(-(62800/(R.gc*298.15)))))
-k.two[i] <- (3*10^-5) * ((exp(-(62800/(R.gc*temp[i])))) / (exp(-(62800/(R.gc*298.15)))))
-Ksw.noP[i] <- exp(148.96502-13847.26/temp[i]-23.6521*(log(temp[i]))+(118.67/temp[i]-5.977+1.0495*(log(temp[i])))*(sal[ai.prox[i]]^0.5)-0.01615*sal[ai.prox[i]])
-hydrox[i] <- Ksw.noP[i] / hyd.const
-k.pr[i] <- k.one[i]*hydrox[i] + k.two[i]
-rk[i] <- sqrt(DT[i]/k.pr[i])
-
-#	Calculate b in uM from Qs, rmean, rK, DT, Pc, eps.f and eps.d using eqn. 15 of Rau et al (1996) 
-b[i] <- ((eps.f - eps.d) * Qs[i] * ((rm[ai.prox[i]]/((1 + rm[ai.prox[i]]/rk[i])*DT[i])) + 1/P.c)) * 10^3
-
-# Calculate eps.p from [CO2](aq), eps.f and b
-eps.p[i] <- eps.f - (b[i]/(co2[i]*10^3))
-
-# Calculate foram d13C from env parm d13C.co2 (rearranged eqns 19 and 20) 
-eps.aog[i] <- (-373/temp[i]) + 0.19  # fractionation b/w CO2 (aq) and CO2 (g)
-d13C.co2g[i] <- ((d13C.co2[ai.prox[i]] + 1000) / (eps.aog[i]/1000 +1)) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
-d13Cpf[i] <- ((11.98 - 0.12*tempC[ai.prox[i]])/1000 + 1)*(d13C.co2g[i] + 1000) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
-
-# Calculate d13C.biomass from d13C.co2 and epsilon.p (eqn 2)
-d13C.biomass[i] <- ((d13C.co2[ai.prox[i]] + 1000) / ((eps.p[i] / 1000) + 1)) - 1000
-
-# Calculate d13C.marker from d13C.biomass (eqn 22)
-d13Cmarker[i] <- ((d13C.biomass[i] + 1000) / ((eps.bob/1000)+1)) - 1000
+  # Pull K0 and Ksw from driver look up tables 
+  t.index[i] <- round((tempC[ai.prox[i]]-tempC.lb)/t.inc)+1
+  s.index[i] <- round((sal[ai.prox[i]]-sal.lb)/s.inc)+1
+  K0[i] <- K0a[t.index[i], s.index[i]]
+  Ksw.noP[i] <- Ksw_sta[t.index[i], s.index[i]]
+  
+  # Calculate aqueous CO2 from atmospheric CO2 with Henry's law (carb chem) 
+  fco2[i] <- pco2[ai.prox[i]]*0.9968
+  co2[i] <- fco2[i]*K0[i]*10^-3 # mol/m^3 (uM)
+  
+  # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean by 
+  # sampling Bayesian model coefficients and intercepts
+  mui[i] <- coeff.mat[coeff.ind,5]*po4[ai.prox[i]] + coeff.mat[coeff.ind,6]*rm[ai.prox[i]] + coeff.mat[coeff.ind,7]
+  
+  # Calculate length of the coccolith and diameter of coccosphere from mean radius (rm)
+  len.lith[i] <- (rm[ai.prox[i]]*10^6)*coeff.mat[coeff.ind,1] + coeff.mat[coeff.ind,2]  # in um
+  diam.cocco[i] <- (rm[ai.prox[i]]*10^6)*coeff.mat[coeff.ind,3] + coeff.mat[coeff.ind,4] # in um
+  
+  # Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
+  cell.vol[i] <- 4/3*3.141593*((rm[ai.prox[i]])^3) # in m^3
+  cell.vol.um[i] <- 4/3*3.141593*((rm[ai.prox[i]]*10^6)^3) # in um^3
+  gam.c[i] <- 3.154*(10^-14)*cell.vol.um[i]
+  Qr[i] <- mui[i] * gam.c[i]
+  Qs[i] <- Qr[i] / (4*3.141593*(rm[ai.prox[i]]^2))
+  
+  # Calculate DT (temperature-sensitive diffusivity of C02(aq)in seawater) from SST using eqn. 8 of Rau et al. (1996)
+  DTi[i] <- 5.019*(10^-6)*exp(-(19510/(R.gc*temp[i])))
+  DT[i] <- DTi[i]*(0.9508 - 7.389*(10^-4)*tempC[ai.prox[i]])
+  
+  # Calculate rK (reacto-diffusive length) from SSS and SST using eqns. 6 and 7 of Rau et al. (1996)
+  k.one[i] <- 8500 * ((exp(-(62800/(R.gc*temp[i])))) / (exp(-(62800/(R.gc*298.15)))))
+  k.two[i] <- (3*10^-5) * ((exp(-(62800/(R.gc*temp[i])))) / (exp(-(62800/(R.gc*298.15)))))
+  hydrox[i] <- Ksw.noP[i] / hyd.const
+  k.pr[i] <- k.one[i]*hydrox[i] + k.two[i]
+  rk[i] <- sqrt(DT[i]/k.pr[i])
+  
+  #	Calculate b in uM from Qs, rmean, rK, DT, Pc, eps.f and eps.d using eqn. 15 of Rau et al (1996) 
+  b[i] <- ((eps.f - eps.d) * Qs[i] * ((rm[ai.prox[i]]/((1 + rm[ai.prox[i]]/rk[i])*DT[i])) + 1/P.c)) * 10^3
+  
+  # Calculate eps.p from [CO2](aq), eps.f and b
+  eps.p[i] <- eps.f - (b[i]/(co2[i]*10^3))
+  
+  # Calculate foram d13C from env parm d13C.co2 (rearranged eqns 19 and 20) 
+  eps.aog[i] <- (-373/temp[i]) + 0.19  # fractionation b/w CO2 (aq) and CO2 (g)
+  d13C.co2g[i] <- ((d13C.co2[ai.prox[i]] + 1000) / (eps.aog[i]/1000 +1)) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
+  d13Cpf[i] <- ((11.98 - 0.12*tempC[ai.prox[i]])/1000 + 1)*(d13C.co2g[i] + 1000) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
+  
+  # Calculate d13C.biomass from d13C.co2 and epsilon.p (eqn 2)
+  d13C.biomass[i] <- ((d13C.co2[ai.prox[i]] + 1000) / ((eps.p[i] / 1000) + 1)) - 1000
+  
+  # Calculate d13C.marker from d13C.biomass (eqn 22)
+  d13Cmarker[i] <- ((d13C.biomass[i] + 1000) / ((eps.bob/1000)+1)) - 1000
 }
 ############################################################################################  
 
@@ -128,13 +132,13 @@ d13Cmarker[i] <- ((d13C.biomass[i] + 1000) / ((eps.bob/1000)+1)) - 1000
 # .pc = error precision of temporal autocorrelation error term (.eps)
 
 # Temp in C
-tempC[1] ~ dnorm(tempC.m, tempC.p) 
+tempC[1] ~ dnorm(tempC.m, tempC.p)T(15,40)  
 tempC.phi ~ dbeta(5,2) 
 tempC.eps[1] = 0 
 tempC.tau ~ dgamma(1, 100)
 
 # Salinity (ppt)  
-sal[1] ~ dnorm(sal.m, sal.p)  
+sal[1] ~ dnorm(sal.m, sal.p)T(33, 37)  
 sal.phi ~ dbeta(5,2)         
 sal.eps[1] = 0                 
 sal.tau ~ dgamma(1e2, 5e-3) 
@@ -170,13 +174,13 @@ for (i in 2:n.steps){
   
   # Temp in C
   tempC.pc[i] <- tempC.tau*((1-tempC.phi^2)/(1-tempC.phi^(2*dt[i-1]))) 
-  tempC.eps[i] ~ dnorm(tempC.eps[i-1]*(tempC.phi^dt[i-1]), tempC.pc[i])T(-12, 12)
-  tempC[i] <- tempC[i-1] + tempC.eps[i]
+  tempC.eps[i] ~ dnorm(tempC.eps[i-1]*(tempC.phi^dt[i-1]), tempC.pc[i])T(-10, 10)
+  tempC[i] <- tempC[1] + tempC.eps[i]
   
   # Salinity (ppt)  
   sal.pc[i] <- sal.tau*((1-sal.phi^2)/(1-sal.phi^(2*dt[i-1])))   
-  sal.eps[i] ~ dnorm(sal.eps[i-1]*(sal.phi^dt[i-1]), sal.pc[i])T(-0.3, 0.3)
-  sal[i] <- sal[i-1] * (1 + sal.eps[i])
+  sal.eps[i] ~ dnorm(sal.eps[i-1]*(sal.phi^dt[i-1]), sal.pc[i])T(-0.1, 0.1)
+  sal[i] <- sal[1] * (1 + sal.eps[i])
   
   # pco2 (uatm)
   pco2.pc[i] <- pco2.tau*((1-pco2.phi^2)/(1-pco2.phi^(2*dt[i-1])))
