@@ -22,11 +22,6 @@ model {
     Uk.data[i] ~ dnorm(Uk[ai.Uk[i]], Uk.p[i])
     Uk.p[i] = 1/(Uk.data.sd[i])^2  # Gaussian precision for Uk'37 measurements from sd
   }
-  
-  for (i in 1:length(ai.iceco2)){
-    iceco2.data[i] ~ dnorm(pco2[ai.iceco2[i]], iceco2.p)
-  }
-  iceco2.p = 1/(6)^2  # Gaussian precision for ice core CO2 measurements from sd
   ############################################################################################  
   
   # Constants - time invariant
@@ -46,7 +41,7 @@ model {
   # Uk'37 temperature sensitvity (Conte et al., 2006; sediment - AnnO linear model)
   # STAND DEV NEEDS TO BE UPDATED! Determine slope and intercept via inversion 
   Uk.sl <- 29.876 
-  Uk.int <- 1.334 
+  Uk.int <- 1.334
   
   # Sample coefficient matrix for mui = f(po4, rm), length.lith = f(rm) and coccosphere.diam = f (rm) relationships
   coeff.ind ~ dcat(1:length(coeff.mat[,1]))

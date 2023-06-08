@@ -1,20 +1,20 @@
 model {
 # DATA MODEL
-rad.p = 1/(1*10^-6)^2
-#for (i in 1:length(rad.index)){
-#  clean.rad[i] ~ dnorm(rm[rad.index[i]], rad.p)
-#}
-po4.p = 1/(0.1*10^-6)^2
-for (i in 1:length(po4.index)){
-  clean.po4[i] ~ dnorm(po4[po4.index[i]], po4.p)
+rad.p = 1/(0.5^2)
+for (i in 1:length(nrow.cal.df)){
+  clean.rad[i] ~ dnorm(rm[i], rad.p)
+}
+po4.p = 1/(0.2^2)
+for (i in 1:length(nrow.cal.df)){
+  clean.po4[i] ~ dnorm(po4[i], po4.p)
 }
 mui.p = 1/(0.3*10^-6)^2
-for (i in 1:length(mui.index)){
-  clean.mui[i] ~ dnorm(mui[mui.index[i]], mui.p)
+for (i in 1:length(nrow.cal.df)){
+  clean.mui[i] ~ dnorm(mui[i], mui.p)
 }
-diamcc.p = 1/0.4^2
-for (i in 1:length(diamcc.index)){
-  clean.diamcc[i] ~ dnorm(diam.cocco[diamcc.index[i]], diamcc.p)
+diamcc.p = 1/1^2
+for (i in 1:length(nrow.cal.df)){
+  clean.diamcc[i] ~ dnorm(diam.cocco[i], diamcc.p)
 }
 
 # PROXY MODEL
@@ -28,16 +28,16 @@ for (i in 1:nrow.cal.df){
 mui[i] <- y.int + co.po4*po4[i] + co.r*rm[i]
 
 # Calculate length of the coccolith and diameter of coccosphere from mean radius (rm)
-len.lith[i] <- (rm[i]*10^6)*lith.m + lith.b  # in um
-diam.cocco[i] <- (rm[i]*10^6)*diam.m + diam.b # in um
+len.lith[i] <- rm[i]*lith.m + lith.b  # in um
+diam.cocco[i] <- rm[i]*diam.m + diam.b # in um
 }
 
 # PRIORS
 for (i in 1:nrow.cal.df){
 # Concentration of phosphate (PO4; umol/kg)
-po4[i] ~ dnorm(cal.po4[i], po4.p)T(0,10)
+po4[i] ~ dnorm(1.2, 0.5)T(0,2)
 # Mean cell radius (m)
-rm[i] ~ dnorm(cal.radius[i]*10^-6, rad.p)T(0,10)
+rm[i] ~ dnorm(1.5, 0.25)T(0,3) # in um
 }
 
 # Slope and intercept for lith length vs. cell radius linear regression 
@@ -46,7 +46,7 @@ lith.b ~ dnorm(lith.r.b, 1/(lith.r.bu)^2)
 
 # Slope and intercept for coccosphere diameter vs. cell radius linear regression 
 diam.m ~ dnorm(cell.r.m, 1/(cell.r.mu)^2)
-diam.b ~ dnorm(cell.r.b, 1/(cell.r.bu)^2) 
+diam.b ~ dnorm(cell.r.b, 1/(cell.r.bu)^2)
 
 # Coefficient for mu(i) - PO4 multi linear regression 
 co.po4 ~ dnorm(po4.co.lr, 1/(po4.se.lr)^2)
@@ -55,5 +55,5 @@ co.po4 ~ dnorm(po4.co.lr, 1/(po4.se.lr)^2)
 co.r ~ dnorm(r.co.lr, 1/(r.se.lr)^2)
 
 # Coefficient for y intercept for mu(i) multi linear regression 
-y.int ~ dnorm(y.int.lr, 1/(y.int.se.lr)^2) 
+y.int ~ dnorm(y.int.lr, 1/(y.int.se.lr)^2)
 }

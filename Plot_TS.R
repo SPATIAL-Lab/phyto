@@ -18,7 +18,6 @@ library(tidyverse)
 step.vector <- seq(1, n.steps, by=1)
 parms.out <- inv.out$BUGSoutput$summary
 parms.out <- data.frame(parms.out)
-ages.prox <- rev(ages.prox)
 
 tempC.v <- paste("tempC[", step.vector, "]", sep="")
 tempC.out <- parms.out[c(tempC.v),]
@@ -51,7 +50,7 @@ iccc <- read.csv("data/icecoreco2comp.csv")
 ###########################################################################################
 
 
-xmax <- 800
+xmax <- 200
 xmin <- -10
 
 # Plot parms of interest
@@ -60,7 +59,7 @@ ggplot() +
   geom_errorbar(data = rm.out, mapping = aes(x=ages.prox, y=mean, ymin=X2.5., ymax=X97.5.), color="gray", width=0) +
   geom_point(data = rm.out, mapping = aes(x=ages.prox, y=mean), color = "black") +
   ylim(0,5e-6) +
-  xlim(xmin,xmax) +
+  xlim(xmax,xmin) +
   labs(x= "age (ka)", y = "mean radius") +
   theme_bw()
 
@@ -68,7 +67,7 @@ ggplot() +
   geom_errorbar(data = d13C.co2.out, mapping = aes(x=ages.prox, y=mean, ymin=X2.5., ymax=X97.5.), color="gray", width=0) +
   geom_point(data = d13C.co2.out, mapping = aes(x=ages.prox, y=mean), color = "black") +
   ylim(-10,-5) +
-  xlim(xmin,xmax) +
+  xlim(xmax,xmin) +
   labs(x= "age (ka)", y = "d13Cco2") +
   theme_bw()
 
@@ -76,7 +75,7 @@ ggplot() +
   geom_errorbar(data = po4.out, mapping = aes(x=ages.prox, y=mean, ymin=X2.5., ymax=X97.5.), color="gray", width=0) +
   geom_point(data = po4.out, mapping = aes(x=ages.prox, y=mean), color = "black") +
   ylim(0,3) +
-  xlim(xmin,xmax) +
+  xlim(xmax,xmin) +
   labs(x= "age (ka)", y = "[PO4]") +
   theme_bw()
 
@@ -84,25 +83,29 @@ ggplot() +
   geom_errorbar(data = sal.out, mapping = aes(x=ages.prox, y=mean, ymin=X2.5., ymax=X97.5.), color="gray", width=0) +
   geom_point(data = sal.out, mapping = aes(x=ages.prox, y=mean), color = "black") +
   ylim(32,38) +
-  xlim(xmin,xmax) +
+  xlim(xmax,xmin) +
   labs(x= "age (ka)", y = "salinity (ppt)") +  
   theme_bw()
 
 ggplot() + 
-  geom_errorbar(data = tempC.out, mapping = aes(x=ages.prox, y=mean, ymin=X2.5., ymax=X97.5.), color="gray", width=0) +
-  geom_line(data=iccc, mapping = aes(x=age, y=iceco2/10), color = "red") +
+  geom_errorbar(data = tempC.out, mapping = aes(x=ages.prox, y=mean, ymin=X2.5., ymax=X97.5.), color="black", width=1) +
+  geom_errorbar(data = tempC.out, mapping = aes(x=ages.prox, y=rev(Uk.data)*29.876, ymin=(rev(Uk.data)-rev(Uk.data.sd))*29.876, 
+                                              ymax=(rev(Uk.data)+rev(Uk.data.sd))*29.876), color="red", linetype=2, width=0) +
   geom_point(data = tempC.out, mapping = aes(x=ages.prox, y=mean), color = "black") +
-  ylim(15,35) +
-  xlim(xmin,xmax) +
-  labs(x= "age (ka)", y = "temp (C)") +
-  theme_bw()
+  geom_point(mapping = aes(x=ages.prox, y=rev(Uk.data)*29.876), color = "red") +
+  scale_y_continuous(sec.axis=sec_axis(~./29.876, name = "Uk'37"), limits=c(20,35))+
+  theme_bw()+
+  theme(axis.text.y.right = element_text(color = "red"), axis.line.y.right = element_line(color = "red"), axis.ticks.y.right = element_line(color = "red")) +
+  xlim(xmax,xmin) +
+  labs(x= "age (ka)", y = "temp (C)") 
 
 ggplot() + 
   geom_errorbar(data = pco2.out, mapping = aes(x=ages.prox, y=mean, ymin=X2.5., ymax=X97.5.), color="gray", width=0) +
+  geom_errorbar(data = pco2.out, mapping = aes(x=ages.prox, y=mean, ymin=X25., ymax=X75.), color="black", width=0) +
   geom_line(data=iccc, mapping = aes(x=age, y=iceco2), color = "red") +
   geom_point(data = pco2.out, mapping = aes(x=ages.prox, y=mean), color = "black") +
-  ylim(150,350) +
-  xlim(xmin,xmax) +
+  ylim(100,350) +
+  xlim(xmax,xmin) +
   labs(x= "age (ka)", y = "pCO2 (uatm)") +   
   theme_bw()
 
