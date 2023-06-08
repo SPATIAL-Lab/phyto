@@ -279,6 +279,7 @@ rm.p = 1/(0.5*10^-6)^2
 # Option to load ice core data-derived mui and size equation parameters 
 ############################################################################################
 coeff.mat.ice <- read.csv("model_out/coeff_mat_ice.csv")
+coeff.mat.ice <- coeff.mat.ice[,2:8]
 ############################################################################################
 
 

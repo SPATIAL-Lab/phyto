@@ -2,7 +2,6 @@
 # This script takes output from the phytoDriver, extracts and plots the output for  
 # each time step w/ 95% CI error bars
 # Dustin T. Harper
-# 2 May, 2023
 
 
 ###########################################################################################
