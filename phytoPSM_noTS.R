@@ -39,23 +39,16 @@ eps.bob <- 4.80
 # cell wall permeability to CO2(aq) in m/s taken from Zhang et al. (2020) 
 P.c ~ dnorm(5.09*10^-5, 1/(0.16*10^-5)^2)
 
-# Uk'37 temperature calibration (Conte et al., 2006; sediment - AnnO linear model)
-# No uncertainty currently considered here 
+# Uk'37 temperature calibration (Conte et al., 2006; sediment - AnnO linear model) with 1.1C = reported se of estimation
 Uk.sl <- 29.876 
 Uk.int <- 1.334 
+Uk.cal.se <- 1.1
 
 # Sample coefficient matrix for mui = f(po4, rm), length.lith = f(rm) and coccosphere.diam = f (rm) relationships
 coeff.ind ~ dcat(1:length(coeff.mat[,1]))
-
-coeff.po4 <- coeff.mat[coeff.ind,5]
-coeff.rm <- coeff.mat[coeff.ind,6]
-mui.y.int <- coeff.mat[coeff.ind,7]
-
-lith.m <- coeff.mat[coeff.ind,1] 
-lith.b <- coeff.mat[coeff.ind,2] 
-
-cocco.m <- coeff.mat[coeff.ind,3] 
-cocco.b <- coeff.mat[coeff.ind,4] 
+coeff.po4 <- coeff.mat[coeff.ind,1]
+coeff.rm <- coeff.mat[coeff.ind,2]
+mui.y.int <- coeff.mat[coeff.ind,3]
 
 # gas constant in J / K*mol
 R.gc <- 8.3143 
@@ -69,7 +62,8 @@ hyd.const <- 10^(-pH.const)
 ############################################################################################  
 for (i in 1:length(d13Cmarker.data)){
   # Calculate Uk'37 from temperature 
-  Uk[i] <- (tempC[i] + Uk.int)/Uk.sl
+  Uk.m[i] <- (tempC[i] + Uk.int)/Uk.sl
+  Uk[i] ~ dnorm(Uk.m[i], 1/(Uk.cal.se/Uk.sl)^2)
   temp[i] <- tempC[i] + 273.15
   
   # Pull K0 and Ksw from driver look up tables 
@@ -86,8 +80,10 @@ for (i in 1:length(d13Cmarker.data)){
   mui[i] <- coeff.po4*po4[i] + coeff.rm*(rm[i]*10^6) + mui.y.int
   
   # Calculate length of the coccolith and diameter of coccosphere from mean radius (rm)
-  len.lith[i] <- lith.m*(rm[i]*10^6) + lith.b  # in um
-  diam.cocco[i] <- cocco.m*(rm[i]*10^6) + cocco.b # in um
+  len.lith.m[i] <- lith.m*(rm[i]*10^6) + lith.b  # in um
+  len.lith[i] ~ dnorm(len.lith.m[i], 1/0.5^2) # standard deviation (0.5) estimated from Henderiks and Pagani (2007) regression uncertainty
+  diam.cocco.m[i] <- cocco.m*(rm[i]*10^6) + cocco.b # in um
+  diam.cocco[i] ~ dnorm(diam.cocco.m[i], 1/0.5^2) # standard deviation (0.5) estimated from Henderiks and Pagani (2007) regression uncertainty
   
   # Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
   cell.vol[i] <- 4/3*3.141593*((rm[i])^3) # in m^3
@@ -138,9 +134,9 @@ pco2[i] ~ dunif(pco2.l, pco2.u)
 # d13C of aqueous CO2 (per mille)
 d13C.co2[i] ~ dnorm(d13C.co2.m, d13C.co2.p) 
 # Concentration of phosphate (PO4; umol/kg)
-po4[i] ~ dnorm(po4.m, po4.p) 
+po4[i] ~ dnorm(po4.m, po4.p)T(0,2) 
 # Mean cell radius (m)
-rm[i] ~ dnorm(rm.m, rm.p) 
+rm[i] ~ dnorm(rm.m, rm.p)T(0,5)
 }
 ############################################################################################   
 }

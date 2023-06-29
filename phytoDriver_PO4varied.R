@@ -1,6 +1,6 @@
 
 
-# Phytoplankton forward PSM driver for use with environmental time series model and ice core co2 data
+# Phytoplankton forward PSM driver for use with environmental time series model 
 ############################################################################################  
 # Runs Bayesian inversion on calibration data to determine slopes and intercepts for the:
 #   1) mu(i) = f(po4, rm) relationship and 
@@ -199,29 +199,33 @@ for (i in 1:length(tempC.vr)){
 ############################################################################################
 
 # Read in proxy time series data
-prox.in <- read.csv('data/timeseries925.csv')
-prox.in <- prox.in[,c(1:10)]
-names(prox.in) <- c("age","d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", "d13Cpf.data.sd", 
-                    "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")
+prox.in <- read.csv('data/timeseriesGIG.csv')
+prox.in <- prox.in[,c(1:11)]
+names(prox.in) <- c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
+                    "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")
+po4.m <- unique(prox.in$po4.prior)
 
 # Setup age range and bins 
 ages.prox <- unique(round(prox.in$age, digits=1))
 ages.prox.max <- max(ages.prox)
 dt <- abs(diff(ages.prox, lag=1))
-ages.prox.ai <- seq(1,length(ages.prox), by=1)
 
 # Age index proxy data
 prox.in <- transform(prox.in,ai=as.numeric(factor(round(age*-1, digits=1))))
+
+# Site index proxy data
+prox.in <- transform(prox.in,site.index=as.numeric(factor(site)))
+
 
 # Groom input data 
 clean.d13Cmarker <- prox.in[complete.cases(prox.in$d13Cmarker.data), ]
 clean.d13Cpf <- prox.in[complete.cases(prox.in$d13Cpf.data), ]
 clean.len.lith <- prox.in[complete.cases(prox.in$len.lith.data), ]
 clean.Uk <- prox.in[complete.cases(prox.in$Uk.data), ]
-clean.iceco2 <- prox.in[complete.cases(prox.in$iceco2.data), ]
 
-# Vector of age indexes that contain d13Cmarker proxy data (with duplicates)
-ai.d13Cmarker <- c(clean.d13Cmarker$ai)    
+# Vectors of age indexes and site indexes that contain d13Cmarker proxy data (with duplicates)
+ai.d13Cmarker <- c(clean.d13Cmarker$ai)  
+site.index.d13Cmarker <- c(clean.d13Cmarker$site.index)
 
 # Vector of age indexes that contain d13Cpf proxy data (with duplicates)
 ai.d13Cpf <- c(clean.d13Cpf$ai)    
@@ -232,14 +236,10 @@ ai.len.lith <- c(clean.len.lith$ai)
 # Vector of age indexes that contain Uk'37 proxy data (with duplicates)
 ai.Uk <- c(clean.Uk$ai)
 
-# Vector of age indexes that contain Uk'37 proxy data (with duplicates)
-ai.iceco2 <- c(clean.iceco2$ai)
-
 # Vector of age indexes for all data
-ai.all <- c(ai.d13Cmarker, ai.d13Cpf, ai.len.lith, ai.Uk, ai.iceco2)
+ai.all <- c(ai.d13Cmarker, ai.d13Cpf, ai.len.lith, ai.Uk)
 
 # Index vector which contains each environmental time step that has one or more proxy data
-
 ai.prox <-  unique(ai.all)     
 ai.prox <- sort(ai.prox, decreasing = FALSE) 
 ages.prox <- sort(ages.prox, decreasing = TRUE) 
@@ -250,7 +250,6 @@ ai.d13Cmarker <- match(ai.d13Cmarker, ai.prox)
 ai.d13Cpf <- match(ai.d13Cpf, ai.prox)
 ai.len.lith <- match(ai.len.lith, ai.prox)
 ai.Uk <- match(ai.Uk, ai.prox)
-ai.iceco2 <- match(ai.iceco2, ai.prox)
 ############################################################################################
 
 
@@ -273,7 +272,7 @@ d13C.co2.m = -8
 d13C.co2.p = 1/1^2
 
 # Concentration of phosphate (PO4; umol/kg)
-po4.m = 1.2
+po4.m = unique(prox.in$po4.prior)
 po4.p = 1/0.2^2
 
 # Mean cell radius (m)
@@ -281,46 +280,51 @@ rm.m = 2*10^-6
 rm.p = 1/(0.5*10^-6)^2
 ############################################################################################
 
+# Option to load ice core data-derived mui and size equation parameters 
+############################################################################################
+coeff.mat.ice <- read.csv("model_out/coeff_mat_ice.csv")
+coeff.mat.ice <- coeff.mat.ice[,2:8]
+############################################################################################
+
 
 # Select data to pass to jags 
 ############################################################################################
-data.pass = list("coeff.mat" = coeff.mat,
-                 "K0a" = K0a,
-                 "Ksw_sta" = Ksw_sta,
-                 "sal.lb" = sal.lb,
-                 "tempC.lb" = tempC.lb,
-                 "t.inc" = t.inc,
-                 "s.inc" = s.inc,
-                 "d13Cmarker.data" = clean.d13Cmarker$d13Cmarker.data,
-                 "d13Cmarker.data.sd" = clean.d13Cmarker$d13Cmarker.data.sd,
-                 "d13Cpf.data" = clean.d13Cpf$d13Cpf.data,
-                 "d13Cpf.data.sd" = clean.d13Cpf$d13Cpf.data.sd,
-                 "len.lith.data" = clean.len.lith$len.lith.data,
-                 "len.lith.data.sd" = clean.len.lith$len.lith.data.sd,
-                 "Uk.data" = clean.Uk$Uk.data,
-                 "Uk.data.sd" = clean.Uk$Uk.data.sd,
-                 "iceco2.data" = clean.iceco2$iceco2.data,
-                 "n.steps" = n.steps,
-                 "dt" = dt,
-                 "ages.prox" = ages.prox,
-                 "ai.prox" = ai.prox, 
-                 "ai.d13Cmarker" = ai.d13Cmarker,
-                 "ai.d13Cpf" = ai.d13Cpf,
-                 "ai.len.lith" = ai.len.lith, 
-                 "ai.Uk" = ai.Uk, 
-                 "ai.iceco2" = ai.iceco2,
-                 "tempC.m" = tempC.m,
-                 "tempC.p" = tempC.p,
-                 "sal.m" = sal.m,
-                 "sal.p" = sal.p,
-                 "pco2.u" = pco2.u,
-                 "pco2.l" = pco2.l,
-                 "d13C.co2.m" = d13C.co2.m,
-                 "d13C.co2.p" = d13C.co2.p,
-                 "po4.m" = po4.m,
-                 "po4.p" = po4.p,
-                 "rm.m" = rm.m,
-                 "rm.p" = rm.p) 
+data.pass = list("coeff.mat" = coeff.mat,#coeff.mat.ice,
+                  "K0a" = K0a,
+                  "Ksw_sta" = Ksw_sta,
+                  "sal.lb" = sal.lb,
+                  "tempC.lb" = tempC.lb,
+                  "t.inc" = t.inc,
+                  "s.inc" = s.inc,
+                  "d13Cmarker.data" = d13Cmarker.data,
+                  "d13Cmarker.data.sd" = d13Cmarker.data.sd,
+                  "d13Cpf.data" = clean.d13Cpf$d13Cpf.data,
+                  "d13Cpf.data.sd" = clean.d13Cpf$d13Cpf.data.sd,
+                  "len.lith.data" = clean.len.lith$len.lith.data,
+                  "len.lith.data.sd" = clean.len.lith$len.lith.data.sd,
+                  "Uk.data" = clean.Uk$Uk.data,
+                  "Uk.data.sd" = clean.Uk$Uk.data.sd,
+                  "n.steps" = n.steps,
+                  "dt" = dt,
+                  "ages.prox" = ages.prox,
+                  "ai.prox" = ai.prox, 
+                  "ai.d13Cmarker" = ai.d13Cmarker,
+                  "site.index.d13Cmarker" = site.index.d13Cmarker,
+                  "ai.d13Cpf" = ai.d13Cpf,
+                  "ai.len.lith" = ai.len.lith, 
+                  "ai.Uk" = ai.Uk, 
+                  "tempC.m" = tempC.m,
+                  "tempC.p" = tempC.p,
+                  "sal.m" = sal.m,
+                  "sal.p" = sal.p,
+                  "pco2.u" = pco2.u,
+                  "pco2.l" = pco2.l,
+                  "d13C.co2.m" = d13C.co2.m,
+                  "d13C.co2.p" = d13C.co2.p,
+                  "po4.m" = po4.m,
+                  "po4.p" = po4.p,
+                  "rm.m" = rm.m,
+                  "rm.p" = rm.p) 
 ############################################################################################
 
 
@@ -333,20 +337,9 @@ parms2 = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b", "coeff.po4", "c
 
 # Run the inversion using jags 
 ############################################################################################
-inv.out = jags.parallel(data = data.pass, model.file = "phytoPSMIce.R", parameters.to.save = parms2,
-                          inits = NULL, n.chains = 3, n.iter = 10000,
-                          n.burnin = 3000, n.thin = 5)
+inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_PO4varied.R", parameters.to.save = parms2,
+                          inits = NULL, n.chains = 3, n.iter = 3000,
+                          n.burnin = 1000, n.thin = 1)
 ############################################################################################
-
-
-# Save model parameters governing size and mui relationships
-############################################################################################
-coeff.mat.ice <- cbind(inv.out[["BUGSoutput"]][["sims.list"]][["lith.m"]], 
-                       inv.out[["BUGSoutput"]][["sims.list"]][["lith.b"]], 
-                       inv.out[["BUGSoutput"]][["sims.list"]][["cocco.m"]], 
-                       inv.out[["BUGSoutput"]][["sims.list"]][["cocco.b"]], 
-                       inv.out[["BUGSoutput"]][["sims.list"]][["coeff.po4"]], 
-                       inv.out[["BUGSoutput"]][["sims.list"]][["coeff.rm"]], 
-                       inv.out[["BUGSoutput"]][["sims.list"]][["mui.y.int"]])
-write.csv(coeff.mat.ice, file = "model_out/coeff_mat_ice.csv")
+#130k iteration + 30k burn-in takes ~1.5 hours for ~20 samples
 

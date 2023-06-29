@@ -64,13 +64,30 @@ for (i in 1:length(tempC.vr)){
 
 # Load proxy data to evaluate against 
 ############################################################################################
-prox.in <- read.csv('data/timeseries925.csv')
-prox.in <- prox.in[,c(1:9)]
-names(prox.in) <- c("age","d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", "d13Cpf.data.sd", 
-                    "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")
-prox.in <- prox.in[complete.cases(prox.in[,c("age","d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
-                                       "d13Cpf.data.sd",  "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")]), ]
 
+# Read in proxy time series data
+prox.in <- read.csv('data/timeseriesGIG.csv')
+prox.in <- prox.in[,c(1:11)]
+names(prox.in) <- c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
+                    "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")
+prox.in <- prox.in[complete.cases(prox.in[,c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
+                                             "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")]), ]
+
+# Data ages
+ages.prox <- unique(round(prox.in$age, digits=1))
+ages.prox <- sort(ages.prox, decreasing = TRUE) 
+
+# Site index proxy data
+prox.in <- transform(prox.in,site.index=as.numeric(factor(site)))
+
+# Groom input data 
+clean.d13Cmarker <- prox.in[complete.cases(prox.in$d13Cmarker.data), ]
+clean.d13Cpf <- prox.in[complete.cases(prox.in$d13Cpf.data), ]
+clean.len.lith <- prox.in[complete.cases(prox.in$len.lith.data), ]
+clean.Uk <- prox.in[complete.cases(prox.in$Uk.data), ]
+
+# Vector of site indexes that contain d13Cmarker proxy data (with duplicates)
+site.index.d13Cmarker <- c(clean.d13Cmarker$site.index)
 ############################################################################################
 
 
@@ -93,7 +110,7 @@ d13C.co2.m = -8
 d13C.co2.p = 1/1^2
 
 # Concentration of phosphate (PO4; umol/kg)
-po4.m = 0.2
+po4.m = unique(prox.in$po4.prior)
 po4.p = 1/0.1^2
 
 # Mean cell radius (m)
@@ -101,35 +118,36 @@ rm.m = 1.5*10^-6
 rm.p = 1/(0.5*10^-6)^2
 ############################################################################################
 
-
 # Option to load ice core data-derived mui and size equation parameters 
 ############################################################################################
-coeff.mat <- read.csv("model_out/coeff_mat_ice_culture.csv")
+coeff.mat <- read.csv("model_out/coeff_mat_ice.csv")
 coeff.mat <- coeff.mat[,2:4]
 ############################################################################################
 
 
 # Select data to pass to jags 
 ############################################################################################
-data.pass = list("coeff.mat" = coeff.mat, 
-                 "cocco.m" = cocco.m,
-                 "cocco.b" = cocco.b,
+data.pass = list("coeff.mat" = coeff.mat,
                  "lith.m" = lith.m,
                  "lith.b" = lith.b,
+                 "cocco.m" = cocco.m,
+                 "cocco.b" = cocco.b,
                  "K0a" = K0a,
                  "Ksw_sta" = Ksw_sta,
                  "sal.lb" = sal.lb,
                  "tempC.lb" = tempC.lb,
                  "t.inc" = t.inc,
                  "s.inc" = s.inc,
-                 "d13Cmarker.data" = prox.in$d13Cmarker.data,
-                 "d13Cmarker.data.sd" = prox.in$d13Cmarker.data.sd,
-                 "d13Cpf.data" = prox.in$d13Cpf.data,
-                 "d13Cpf.data.sd" = prox.in$d13Cpf.data.sd,
-                 "len.lith.data" = prox.in$len.lith.data,
-                 "len.lith.data.sd" = prox.in$len.lith.data.sd,
-                 "Uk.data" = prox.in$Uk.data,
-                 "Uk.data.sd" = prox.in$Uk.data.sd,
+                 "d13Cmarker.data" = clean.d13Cmarker$d13Cmarker.data,
+                 "d13Cmarker.data.sd" = clean.d13Cmarker$d13Cmarker.data.sd,
+                 "d13Cpf.data" = clean.d13Cpf$d13Cpf.data,
+                 "d13Cpf.data.sd" = clean.d13Cpf$d13Cpf.data.sd,
+                 "len.lith.data" = clean.len.lith$len.lith.data,
+                 "len.lith.data.sd" = clean.len.lith$len.lith.data.sd,
+                 "Uk.data" = clean.Uk$Uk.data,
+                 "Uk.data.sd" = clean.Uk$Uk.data.sd,
+                 "ages.prox" = ages.prox,
+                 "site.index.d13Cmarker" = site.index.d13Cmarker,
                  "tempC.m" = tempC.m,
                  "tempC.p" = tempC.p,
                  "sal.m" = sal.m,
@@ -153,9 +171,9 @@ parms2 = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b", "coeff.po4", "c
 
 # Run the inversion using jags 
 ############################################################################################
-inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_noTS.R", parameters.to.save = parms2,
-                          inits = NULL, n.chains = 3, n.iter = 10000,
-                          n.burnin = 3000, n.thin = 1)
+inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_noTSPO4varied.R", parameters.to.save = parms2,
+                          inits = NULL, n.chains = 3, n.iter = 100000,
+                          n.burnin = 30000, n.thin = 10)
 ############################################################################################
 
 

@@ -4,29 +4,24 @@ model {
 # Likelihood function: this block evaluates the data against the modeled values
 ############################################################################################ 
 for (i in 1:length(d13Cmarker.data)){
-  d13Cmarker.data[i] ~ dnorm(d13Cmarker[i], d13Cmarker.p[i])
+  d13Cmarker.data[i] ~ dnorm(d13Cmarker[i, site.index.d13Cmarker[i]], d13Cmarker.p[i])
   d13Cmarker.p[i] = 1/d13Cmarker.data.sd[i]^2 # Gaussian precision for d13Cmarker measurements from sd 
 }
 
-for (i in 1:length(d13Cmarker.data)){
+for (i in 1:length(d13Cpf.data)){
   d13Cpf.data[i] ~ dnorm(d13Cpf[i], d13Cpf.p[i])
   d13Cpf.p[i] = 1/d13Cpf.data.sd[i]^2 # Gaussian precision for d13Cpf measurements from sd
 }
 
-for (i in 1:length(d13Cmarker.data)){
+for (i in 1:length(len.lith.data)){
   len.lith.data[i] ~ dnorm(len.lith[i], len.lith.p[i])
   len.lith.p[i] = 1/(len.lith.data.sd[i])^2  # Gaussian precision for length of coccolith measurements from sd
 }
 
-for (i in 1:length(d13Cmarker.data)){
+for (i in 1:length(Uk.data)){
   Uk.data[i] ~ dnorm(Uk[i], Uk.p[i])
   Uk.p[i] = 1/(Uk.data.sd[i])^2  # Gaussian precision for Uk'37 measurements from sd
 }
-  
-for (i in 1:length(d13Cmarker.data)){
-  iceco2.data[i] ~ dnorm(pco2[i], iceco2.p)
-}
-iceco2.p = 1/(6)^2  # Gaussian precision for ice core CO2 measurements from sd
 ############################################################################################ 
 
 
@@ -44,23 +39,16 @@ eps.bob <- 4.80
 # cell wall permeability to CO2(aq) in m/s taken from Zhang et al. (2020) 
 P.c ~ dnorm(5.09*10^-5, 1/(0.16*10^-5)^2)
 
-# Uk'37 temperature calibration (Conte et al., 2006; sediment - AnnO linear model)
-# No uncertainty currently considered here 
+# Uk'37 temperature calibration (Conte et al., 2006; sediment - AnnO linear model) with 1.1C = reported se of estimation
 Uk.sl <- 29.876 
 Uk.int <- 1.334 
+Uk.cal.se <- 1.1
 
 # Sample coefficient matrix for mui = f(po4, rm), length.lith = f(rm) and coccosphere.diam = f (rm) relationships
 coeff.ind ~ dcat(1:length(coeff.mat[,1]))
-
-coeff.po4 <- coeff.mat[coeff.ind,5]
-coeff.rm <- coeff.mat[coeff.ind,6]
-mui.y.int <- coeff.mat[coeff.ind,7]
-
-lith.m <- coeff.mat[coeff.ind,1] 
-lith.b <- coeff.mat[coeff.ind,2] 
-
-cocco.m <- coeff.mat[coeff.ind,3] 
-cocco.b <- coeff.mat[coeff.ind,4] 
+coeff.po4 <- coeff.mat[coeff.ind,1]
+coeff.rm <- coeff.mat[coeff.ind,2]
+mui.y.int <- coeff.mat[coeff.ind,3]
 
 # gas constant in J / K*mol
 R.gc <- 8.3143 
@@ -69,6 +57,7 @@ R.gc <- 8.3143
 pH.const <- 8
 hyd.const <- 10^(-pH.const)
 ############################################################################################  
+
 
 # Proxy System Model
 ############################################################################################  
@@ -87,19 +76,14 @@ for (i in 1:length(d13Cmarker.data)){
   fco2[i] <- pco2[i]*0.9968
   co2[i] <- fco2[i]*K0[i]*10^-3 # mol/m^3 (uM)
   
-  # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean 
-  mui[i] <- coeff.po4*po4[i] + coeff.rm*(rm[i]*10^6) + mui.y.int
-  
   # Calculate length of the coccolith and diameter of coccosphere from mean radius (rm)
   len.lith[i] <- lith.m*(rm[i]*10^6) + lith.b  # in um
   diam.cocco[i] <- cocco.m*(rm[i]*10^6) + cocco.b # in um
   
-  # Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
+  # Calculate cell carbon content
   cell.vol[i] <- 4/3*3.141593*((rm[i])^3) # in m^3
   cell.vol.um[i] <- 4/3*3.141593*((rm[i]*10^6)^3) # in um^3
-  gam.c[i] <- 1.46*10^-14*cell.vol.um[i]  # cell carbon content; follows Zhang et al. (2020) 
-  Qr[i] <- mui[i]/log(2) * gam.c[i]
-  Qs[i] <- Qr[i] / (4*3.141593*(rm[i]^2))
+  gam.c[i] <- 1.46*10^-14*cell.vol.um[i] 
   
   # Calculate DT (temperature-sensitive diffusivity of C02(aq)in seawater) from SST using eqn. 8 of Rau et al. (1996)
   DTi[i] <- 5.019*(10^-6)*exp(-(19510/(R.gc*temp[i])))
@@ -112,24 +96,30 @@ for (i in 1:length(d13Cmarker.data)){
   k.pr[i] <- k.one[i]*hydrox[i] + k.two[i]
   rk[i] <- sqrt(DT[i]/k.pr[i])
   
-  #	Calculate b in uM from Qs, rmean, rK, DT, Pc, eps.f and eps.d using eqn. 15 of Rau et al (1996) 
-  b[i] <- ((eps.f - eps.d) * Qs[i] * ((rm[i]/((1 + rm[i]/rk[i])*DT[i])) + 1/P.c)) * 10^3
-  
-  # Calculate eps.p from [CO2](aq), eps.f and b
-  eps.p[i] <- eps.f - (b[i]/(co2[i]*10^3))
-  
   # Calculate foram d13C from env parm d13C.co2 (rearranged eqns 19 and 20) 
   eps.aog[i] <- (-373/temp[i]) + 0.19  # fractionation b/w CO2 (aq) and CO2 (g)
   d13C.co2g[i] <- ((d13C.co2[i] + 1000) / (eps.aog[i]/1000 +1)) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
   d13Cpf[i] <- ((11.98 - 0.12*tempC[i])/1000 + 1)*(d13C.co2g[i] + 1000) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
   
-  # Calculate d13C.biomass from d13C.co2 and epsilon.p (eqn 2)
-  d13C.biomass[i] <- ((d13C.co2[i] + 1000) / ((eps.p[i] / 1000) + 1)) - 1000
   
-  # Calculate d13C.marker from d13C.biomass (eqn 22)
-  d13Cmarker[i] <- ((d13C.biomass[i] + 1000) / ((eps.bob/1000)+1)) - 1000
+  # "Spatial" component - po4 only for now 
+  for (j in 1:length(po4.m)){
+    # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean 
+    mui[i,j] <- coeff.po4*po4[i,j] + coeff.rm*(rm[i]*10^6) + mui.y.int
+    # Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
+    Qr[i,j] <- mui[i,j]/log(2) * gam.c[i]
+    Qs[i,j] <- Qr[i,j] / (4*3.141593*(rm[i]^2))
+    #	Calculate b in uM from Qs, rmean, rK, DT, Pc, eps.f and eps.d using eqn. 15 of Rau et al (1996) 
+    b[i,j] <- ((eps.f - eps.d) * Qs[i,j] * ((rm[i]/((1 + rm[i]/rk[i])*DT[i])) + 1/P.c)) * 10^3
+    # Calculate eps.p from [CO2](aq), eps.f and b
+    eps.p[i,j] <- eps.f - (b[i,j]/(co2[i]*10^3))
+    # Calculate d13C.biomass from d13C.co2 and epsilon.p (eqn 2)
+    d13C.biomass[i,j] <- ((d13C.co2[i] + 1000) / ((eps.p[i,j] / 1000) + 1)) - 1000
+    # Calculate d13C.marker from d13C.biomass (eqn 22)
+    d13Cmarker[i,j] <- ((d13C.biomass[i,j] + 1000) / ((eps.bob/1000)+1)) - 1000
+  }
 }
-############################################################################################ 
+
 
 # Environmental prior distributions 
 ############################################################################################   
@@ -143,9 +133,11 @@ pco2[i] ~ dunif(pco2.l, pco2.u)
 # d13C of aqueous CO2 (per mille)
 d13C.co2[i] ~ dnorm(d13C.co2.m, d13C.co2.p) 
 # Concentration of phosphate (PO4; umol/kg)
-po4[i] ~ dnorm(po4.m, po4.p) 
+for (j in 1:length(po4.m)){
+  po4[i,j] ~ dnorm(po4.m[j], po4.p)T(0,2)     
+}
 # Mean cell radius (m)
-rm[i] ~ dnorm(rm.m, rm.p) 
+rm[i] ~ dnorm(rm.m, rm.p)T(0,5)
 }
 ############################################################################################   
 }
