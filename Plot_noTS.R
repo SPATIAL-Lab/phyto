@@ -35,8 +35,8 @@ xmin <- -10
 # Plot parms of interest
 
 ggrad <- ggplot() + 
-  geom_errorbar(mapping = aes(x=ages.prox, y=rm.out[2,], ymin=rm.out[1,], ymax=rm.out[3,], color=factor(site.index.d13Cmarker), width=0)) +
-  geom_point(mapping = aes(x=ages.prox, y=rm.out[2,], color = factor(site.index.d13Cmarker))) +
+  geom_errorbar(mapping = aes(x=ages.prox, y=rm.out[2,], ymin=rm.out[1,], ymax=rm.out[3,], color=factor(site.index), width=0)) +
+  geom_point(mapping = aes(x=ages.prox, y=rm.out[2,], color = factor(site.index))) +
   scale_color_manual(values= c("cornflowerblue", "blueviolet")) +
   ylim(0,5e-6) +
   xlim(xmax,xmin) +
@@ -44,8 +44,8 @@ ggrad <- ggplot() +
   theme_bw() + theme(legend.position="none")
 
 ggd13C <- ggplot() + 
-  geom_errorbar(mapping = aes(x=ages.prox, y=d13C.co2.out[2,], ymin=d13C.co2.out[1,], ymax=d13C.co2.out[3,], color=factor(site.index.d13Cmarker), width=0)) +
-  geom_point(mapping = aes(x=ages.prox, y=d13C.co2.out[2,], color = factor(site.index.d13Cmarker))) +
+  geom_errorbar(mapping = aes(x=ages.prox, y=d13C.co2.out[2,], ymin=d13C.co2.out[1,], ymax=d13C.co2.out[3,], color=factor(site.index), width=0)) +
+  geom_point(mapping = aes(x=ages.prox, y=d13C.co2.out[2,], color = factor(site.index))) +
   scale_color_manual(values= c("cornflowerblue", "blueviolet")) +
   ylim(-10,-5) +
   xlim(xmax,xmin) +
@@ -53,8 +53,8 @@ ggd13C <- ggplot() +
   theme_bw() + theme(legend.position="none")
 
 ggpo4 <- ggplot() + 
-  geom_errorbar(mapping = aes(x=ages.prox, y=po4.out[2,], ymin=po4.out[1,], ymax=po4.out[3,], color=factor(site.index.d13Cmarker), width=0)) +
-  geom_point(mapping = aes(x=ages.prox, y=po4.out[2,], color = factor(site.index.d13Cmarker))) +
+  geom_errorbar(mapping = aes(x=ages.prox, y=po4.out[2,], ymin=po4.out[1,], ymax=po4.out[3,], color=factor(site.index), width=0)) +
+  geom_point(mapping = aes(x=ages.prox, y=po4.out[2,], color = factor(site.index))) +
   scale_color_manual(values= c("cornflowerblue", "blueviolet")) +
   ylim(0,3) +
   xlim(xmax,xmin) +
@@ -62,8 +62,8 @@ ggpo4 <- ggplot() +
   theme_bw() + theme(legend.position="none")
 
 ggsal <- ggplot() + 
-  geom_errorbar(mapping = aes(x=ages.prox, y=sal.out[2,], ymin=sal.out[1,], ymax=sal.out[3,], color=factor(site.index.d13Cmarker), width=0)) +
-  geom_point(mapping = aes(x=ages.prox, y=sal.out[2,], color = factor(site.index.d13Cmarker))) +
+  geom_errorbar(mapping = aes(x=ages.prox, y=sal.out[2,], ymin=sal.out[1,], ymax=sal.out[3,], color=factor(site.index), width=0)) +
+  geom_point(mapping = aes(x=ages.prox, y=sal.out[2,], color = factor(site.index))) +
   scale_color_manual(values= c("cornflowerblue", "blueviolet")) +
   ylim(32,38) +
   xlim(xmax,xmin) +
@@ -71,10 +71,10 @@ ggsal <- ggplot() +
   theme_bw() + theme(legend.position="none")
 
 ggtemp <- ggplot() + 
-  geom_errorbar(mapping = aes(x=ages.prox, y=tempC.out[2,], ymin=tempC.out[1,], ymax=tempC.out[3,], color=factor(site.index.d13Cmarker), width=1)) +
+  geom_errorbar(mapping = aes(x=ages.prox, y=tempC.out[2,], ymin=tempC.out[1,], ymax=tempC.out[3,], color=factor(site.index), width=1)) +
   geom_errorbar(mapping = aes(x=ages.prox, y=Uk.data*29.876, ymin=Uk.data-Uk.data.sd*29.876, 
                                               ymax=Uk.data+Uk.data.sd*29.876), color="grey", linetype=2, width=0) +
-  geom_point(mapping = aes(x=ages.prox, y=tempC.out[2,], color = factor(site.index.d13Cmarker))) +
+  geom_point(mapping = aes(x=ages.prox, y=tempC.out[2,], color = factor(site.index))) +
   scale_color_manual(values= c("cornflowerblue", "blueviolet")) +
   geom_point(mapping = aes(x=ages.prox, y=Uk.data*29.876), color = "grey") +
   scale_y_continuous(sec.axis=sec_axis(~./29.876, name = "Uk'37"), limits=c(20,35))+
@@ -85,13 +85,14 @@ ggtemp <- ggplot() +
   labs(x= "age (ka)", y = "temp (C)") 
 
 ggco2 <- ggplot() +   
-  geom_line(data=iccc, mapping = aes(x=age, y=iceco2), color = "red") +
-  geom_errorbar(mapping = aes(x=ages.prox, y=pco2.out[2,], ymin=pco2.out[1,], ymax=pco2.out[3,], color=factor(site.index.d13Cmarker), width=0)) +
-  geom_point(mapping = aes(x=ages.prox, y=pco2.out[2,], color = factor(site.index.d13Cmarker))) +
+  geom_line(data=iccc, mapping = aes(x=age, y=iceco2), color = "cornsilk4", linewidth=1) +
+  geom_errorbar(mapping = aes(x=ages.prox, y=pco2.out[2,], ymin=pco2.out[1,], ymax=pco2.out[3,]), color="black", linewidth=0.3) +
+  geom_point(mapping = aes(x=ages.prox, y=pco2.out[2,], color = factor(site.index), shape=factor(site.index)), size=3) +
   scale_color_manual(values= c("cornflowerblue", "blueviolet")) +
-  ylim(100,400) +
+  ylim(150,320) +
   xlim(xmax,xmin) +
-  labs(x= "age (ka)", y = "pCO2 (uatm)") +
+  xlab("age (ka)")+
+  ylab(expression(CO[2]~(ppmv))) +
   theme_bw() + theme(legend.position="none")
 
 

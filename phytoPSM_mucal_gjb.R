@@ -24,17 +24,19 @@ for (i in 1:length(Uk.data)){
 }
 
 for (i in 1:length(iceco2.data)){
-  iceco2.data[i] ~ dnorm(pco2[i], iceco2.p)
+  iceco2.data[i] ~ dnorm(pco2[i], 1/(6)^2)
 }
-iceco2.p = 1/(6)^2  # Gaussian precision for ice core CO2 measurements from sd
 
 for (i in 1:length(mui.cd.data)){
-  mui.cd.data[i] ~ dnorm(mui.cd[i], mui.p)
+  mui.cd.data[i] ~ dnorm(mui.cd[i], 1/(1e-6)^2)
 }
-mui.p = 1/(1e-6)^2
 
 for(i in 1:length(radius.cd)){
-  radius.cd[i] ~ dnorm(rm.cd[i], 1 / 0.05^2)
+  radius.cd[i] ~ dnorm(rm.cd[i], 1 / 0.25e-6^2)
+}
+
+for(i in 1:length(po4.cd.data)){
+  po4.cd.data[i] ~ dnorm(po4.cd[i], 1 / 0.05^2)
 }
 
 ############################################################################################ 
@@ -66,9 +68,6 @@ R.gc <- 8.3143
 pH.const <- 8
 hyd.const <- 10^(-pH.const)
 
-# Here using 0.25um as radius standard deviation based on Henderiks and Pagani (2007) 2sigma uncertainty in regression (i.e., +/-1 in diameter)
-rp.cd <- 1/0.25^2
-
 
 # mui coefficient priors
 ############################################################################################ 
@@ -88,7 +87,9 @@ mui.y.int ~ dnorm(y.int.lr, 1/(y.int.se.lr)^2)
 
 for (i in 1:length(radius.cd)){
   # Mean cell radius (m)
-  rm.cd[i] ~ dnorm(rm.m, rm.p)T(0,5)
+  rm.cd[i] ~ dnorm(rm.m, rm.p)T(0,5e-6)
+  
+  po4.cd[i] ~ dnorm(po4.m.cd, po4.p)T(0,2)
 
   # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean
   mui.cd[i] <- coeff.po4*po4.cd[i] + coeff.rm*(rm.cd[i]*10^6) + mui.y.int
@@ -97,7 +98,7 @@ for (i in 1:length(radius.cd)){
 
 
 # Proxy System Model - paleo data
-############################################################################################  
+############################################################################################
 for (i in 1:length(d13Cmarker.data)){
   # Calculate Uk'37 from temperature
   Uk[i] <- (tempC[i] + Uk.int)/Uk.sl
@@ -168,7 +169,7 @@ pco2[i] ~ dunif(pco2.l, pco2.u)
 # d13C of aqueous CO2 (per mille)
 d13C.co2[i] ~ dnorm(d13C.co2.m, d13C.co2.p)
 # Concentration of phosphate (PO4; umol/kg)
-po4[i] ~ dnorm(po4.m[site.index.d13Cmarker[i]], po4.p)T(0,2)
+po4[i] ~ dnorm(po4.m[site.index[i]], po4.p)T(0,2)
 # Mean cell radius (m)
 rm[i] ~ dnorm(rm.m, rm.p)T(0,5)
 }

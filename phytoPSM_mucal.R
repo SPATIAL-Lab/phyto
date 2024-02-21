@@ -79,7 +79,7 @@ mui.y.int ~ dnorm(y.int.lr, 1/(y.int.se.lr)^2)
 
 
 ############################################################################################  
-# Proxy System Model - modern calibration data
+# Proxy System Model - modern calibration data diam.cocco.cd and po4.cd should be introduced as data
 ############################################################################################  
 
 for (i in 1:length(diam.cocco.cd)){
