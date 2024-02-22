@@ -94,7 +94,7 @@ prox.in <- prox.in[complete.cases(prox.in[,c("site", "age", "po4.prior", "d13Cma
 
 # Site index proxy data
 prox.in <- transform(prox.in,site.index=as.numeric(factor(site)))
-site.index.d13Cmarker <- c(prox.in$site.index)
+site.index <- c(prox.in$site.index)
 ############################################################################################
 
 
@@ -117,8 +117,9 @@ d13C.co2.m = -8
 d13C.co2.p = 1/1^2
 
 # Concentration of phosphate (PO4; umol/kg)
+po4.m.cd = 1.5
 po4.m = unique(prox.in$po4.prior)
-po4.p = 1/0.1^2
+po4.p = 1/0.25^2 # 1/0.1^2
 
 # Mean cell radius (m)
 rm.m = 1.5*10^-6
@@ -138,8 +139,8 @@ data.pass = list("po4.co.lr" = po4.co.lr,
                  "cocco.b" = cocco.b,
                  "lith.m" = lith.m,
                  "lith.b" = lith.b,
-                 "diam.cocco.cd" = cal.df$diam.cc,
-                 "po4.cd" = cal.df$po4,
+                 "radius.cd" = cal.df$radius*1e-6,
+                 "po4.cd.data" = cal.df$po4,
                  "mui.cd.data" = cal.df$mui,
                  "K0a" = K0a,
                  "Ksw_sta" = Ksw_sta,
@@ -156,7 +157,7 @@ data.pass = list("po4.co.lr" = po4.co.lr,
                  "Uk.data" = prox.in$Uk.data,
                  "Uk.data.sd" = prox.in$Uk.data.sd,
                  "iceco2.data" = prox.in$iceco2.data,
-                 "site.index.d13Cmarker" = site.index.d13Cmarker,
+                 "site.index" = site.index,
                  "tempC.m" = tempC.m,
                  "tempC.p" = tempC.p,
                  "sal.m" = sal.m,
@@ -166,6 +167,7 @@ data.pass = list("po4.co.lr" = po4.co.lr,
                  "d13C.co2.m" = d13C.co2.m,
                  "d13C.co2.p" = d13C.co2.p,
                  "po4.m" = po4.m,
+                 "po4.m.cd" = po4.m.cd,
                  "po4.p" = po4.p,
                  "rm.m" = rm.m,
                  "rm.p" = rm.p) 
@@ -180,9 +182,10 @@ parms = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b", "coeff.po4", "co
 
 # Run the inversion using jags 
 ############################################################################################
-inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal.R", parameters.to.save = parms,
-                          inits = NULL, n.chains = 3, n.iter = 10000,
-                          n.burnin = 3000, n.thin = 1)
+inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal_gjb_ice.R", parameters.to.save = parms,
+                          inits = NULL, n.chains = 3, n.iter = 1e7,
+                          n.burnin = 5e5, n.thin = 100)
+
 ############################################################################################
 
 
@@ -191,6 +194,6 @@ inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal.R", param
 coeff.mat <- cbind(inv.out[["BUGSoutput"]][["sims.list"]][["coeff.po4"]], 
                        inv.out[["BUGSoutput"]][["sims.list"]][["coeff.rm"]], 
                        inv.out[["BUGSoutput"]][["sims.list"]][["mui.y.int"]])
-write.csv(coeff.mat, file = "model_out/coeff_mat_ice_culture.csv")
+write.csv(coeff.mat, file = "model_out/coeff_mat_ice.csv")
 
 
