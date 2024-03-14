@@ -1,28 +1,29 @@
 
 model {
 
-# Likelihood function: this block evaluates the data against the modeled values
-############################################################################################ 
-for (i in 1:length(d13Cmarker.data)){
-  d13Cmarker.data[i] ~ dnorm(d13Cmarker[i], d13Cmarker.p[i])
-  d13Cmarker.p[i] = 1/d13Cmarker.data.sd[i]^2 # Gaussian precision for d13Cmarker measurements from sd 
-}
-
-for (i in 1:length(d13Cpf.data)){
-  d13Cpf.data[i] ~ dnorm(d13Cpf[i], d13Cpf.p[i])
-  d13Cpf.p[i] = 1/d13Cpf.data.sd[i]^2 # Gaussian precision for d13Cpf measurements from sd
-}
-
-for (i in 1:length(len.lith.data)){
-  len.lith.data[i] ~ dnorm(len.lith[i], len.lith.p[i])
-  len.lith.p[i] = 1/(len.lith.data.sd[i])^2  # Gaussian precision for length of coccolith measurements from sd
-}
-
-for (i in 1:length(Uk.data)){
-  Uk.data[i] ~ dnorm(Uk[i], Uk.p[i])
-  Uk.p[i] = 1/(Uk.data.sd[i])^2  # Gaussian precision for Uk'37 measurements from sd
-}
-############################################################################################ 
+  # Likelihood function: this block evaluates the data against the modeled values
+  ############################################################################################ 
+  
+  for (i in 1:length(ai.d13Cmarker)){
+    d13Cmarker.data[i] ~ dnorm(d13Cmarker[ai.d13Cmarker[i], site.index.d13Cmarker[i]], d13Cmarker.p[i])
+    d13Cmarker.p[i] = 1/d13Cmarker.data.sd[i]^2 # Gaussian precision for d13Cmarker measurements from sd 
+  }
+  
+  for (i in 1:length(ai.d13Cpf)){
+    d13Cpf.data[i] ~ dnorm(d13Cpf[ai.d13Cpf[i]], d13Cpf.p[i])
+    d13Cpf.p[i] = 1/d13Cpf.data.sd[i]^2 # Gaussian precision for d13Cpf measurements from sd
+  }
+  
+  for (i in 1:length(ai.len.lith)){
+    len.lith.data[i] ~ dnorm(len.lith[ai.len.lith[i]], len.lith.p[i])
+    len.lith.p[i] = 1/(len.lith.data.sd[i])^2  # Gaussian precision for length of coccolith measurements from sd
+  }
+  
+  for (i in 1:length(ai.Uk)){
+    Uk.data[i] ~ dnorm(Uk[ai.Uk[i]], Uk.p[i])
+    Uk.p[i] = 1/(Uk.data.sd[i])^2  # Gaussian precision for Uk'37 measurements from sd
+  }
+  ############################################################################################  
 
 
 # Constants
@@ -103,65 +104,109 @@ for (i in 1:length(d13Cmarker.data)){
   d13C.co2g[i] <- ((d13C.co2[i] + 1000) / (eps.aog[i]/1000 +1)) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
   d13Cpf[i] <- ((11.98 - 0.12*tempC[i])/1000 + 1)*(d13C.co2g[i] + 1000) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
   
-  
-  # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean
-  mui[i] <- coeff.po4*po4[i] + coeff.rm*(rm[i]*10^6) + mui.y.int
-  # Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
-  Qr[i] <- mui[i]/log(2) * gam.c[i]
-  Qs[i] <- Qr[i] / (4*3.141593*(rm[i]^2))
-  #	Calculate b in uM from Qs, rmean, rK, DT, Pc, eps.f and eps.d using eqn. 15 of Rau et al (1996)
-  b[i] <- ((eps.f - eps.d) * Qs[i] * ((rm[i]/((1 + rm[i]/rk[i])*DT[i])) + 1/P.c)) * 10^3
-  # Calculate eps.p from [CO2](aq), eps.f and b
-  eps.p[i] <- eps.f - (b[i]/(co2[i]*10^3))
-  # Calculate d13C.biomass from d13C.co2 and epsilon.p (eqn 2)
-  d13C.biomass[i] <- ((d13C.co2[i] + 1000) / ((eps.p[i] / 1000) + 1)) - 1000
-  # Calculate d13C.marker from d13C.biomass (eqn 22)
-  d13Cmarker[i] <- ((d13C.biomass[i] + 1000) / ((eps.bob/1000)+1)) - 1000
+  # "Spatial" component - po4 only for now 
+  for (j in 1:length(po4.m)){
+    # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean 
+    mui[i,j] <- coeff.po4*po4[ai.prox[i],j] + coeff.rm*(rm[ai.prox[i]]*10^6) + mui.y.int
+    # Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
+    Qr[i,j] <- mui[i,j]/log(2) * gam.c[i]
+    Qs[i,j] <- Qr[i,j] / (4*3.141593*(rm[ai.prox[i]]^2))
+    #	Calculate b in uM from Qs, rmean, rK, DT, Pc, eps.f and eps.d using eqn. 15 of Rau et al (1996) 
+    b[i,j] <- ((eps.f - eps.d) * Qs[i,j] * ((rm[ai.prox[i]]/((1 + rm[ai.prox[i]]/rk[i])*DT[i])) + 1/P.c)) * 10^3
+    # Calculate eps.p from [CO2](aq), eps.f and b
+    eps.p[i,j] <- eps.f - (b[i,j]/(co2[i]*10^3))
+    # Calculate d13C.biomass from d13C.co2 and epsilon.p (eqn 2)
+    d13C.biomass[i,j] <- ((d13C.co2[ai.prox[i]] + 1000) / ((eps.p[i,j] / 1000) + 1)) - 1000
+    # Calculate d13C.marker from d13C.biomass (eqn 22)
+    d13Cmarker[i,j] <- ((d13C.biomass[i,j] + 1000) / ((eps.bob/1000)+1)) - 1000
+  }
   
 }
 ############################################################################################ 
 
 
-# Environmental prior distributions 
+# Environmental model - time series priors
 ############################################################################################   
+# Environmental time-dependent prior initial conditions 
+# .phi = temporal autocorrelation of a parameter
+# .eps =  error term 
+# .tau = error precision for dt = 1
+# .pc = error precision of temporal autocorrelation error term (.eps)
+
+# Temp in C
+tempC[1] ~ dnorm(tempC.m, tempC.p)T(15,40)  
+tempC.phi ~ dbeta(5,2) 
+tempC.eps[1] = 0 
+tempC.tau ~ dgamma(1, 10)
+
+# Salinity (ppt)  
+sal[1] ~ dnorm(sal.m, sal.p)T(33, 37)  
+sal.phi ~ dbeta(5,2)         
+sal.eps[1] = 0                 
+sal.tau ~ dgamma(1e2, 5e-3) 
+
+# pCO2 (uatm)
+pco2[1] ~ dnorm(pco2.m, pco2.p)   
+pco2.phi ~ dbeta(5,2)
+pco2.eps[1] = 0 
+pco2.tau ~ dgamma(0.1, 1e6) 
+
+# d13C of aqueous CO2 (per mille)
+d13C.co2[1] ~ dnorm(d13C.co2.m, d13C.co2.p)    
+d13C.co2.phi ~ dbeta(5,2)  
+d13C.co2.eps[1] = 0 
+d13C.co2.tau ~ dgamma(100,10)
 
 # Concentration of phosphate (PO4; umol/kg)
-for (i in 1:site.count){
-  po4.site[i] ~ dnorm(po4.m[site.index[i]], po4.p)T(0,2)
+for (j in 1:length(po4.m)){
+  po4[1,j] ~ dnorm(po4.m[j], po4.p)T(0,3)     
 }
 po4.phi ~ dbeta(5,2)  
 po4.eps[1] = 0 
 po4.tau ~ dgamma(1e3, 1e-5)
 
-for (i in 1:length(d13Cmarker.data)){
+# Mean cell radius (m)
+rm[1] ~ dnorm(rm.m, rm.p)T(0,5)
+rm.phi ~ dbeta(5,2) 
+rm.eps[1] = 0 
+rm.tau ~ dgamma(1e12, 1e-3)
+############################################################################################  
+
+# Environmental time series random walk model
+############################################################################################  
+for (i in 2:n.steps){
   
-  # Concentration of phosphate (PO4; umol/kg)  
-  po4.pc[i] <- po4.tau*((1-po4.phi^2)/(1-po4.phi^(2*dt[i-1]))) 
-  po4.eps[i] ~ dnorm(po4.eps[i-1]*(po4.phi^dt[i-1]), po4.pc[i])T(-1, 1)
-  po4[i] <- po4.site[site.index[i]] + po4.eps[i] # i.e., Y = Y(1) + Yeps(t); ERROR IS NOT SITE SPECIFIC, NO RANDOM WALK
+  # Temp in C
+  tempC.pc[i] <- tempC.tau*((1-tempC.phi^2)/(1-tempC.phi^(2*dt[i-1]))) 
+  tempC.eps[i] ~ dnorm(tempC.eps[i-1]*(tempC.phi^dt[i-1]), tempC.pc[i])T(-10, 10)
+  tempC[i] <- tempC[1] + tempC.eps[i]
   
+  # Salinity (ppt)  
+  sal.pc[i] <- sal.tau*((1-sal.phi^2)/(1-sal.phi^(2*dt[i-1])))   
+  sal.eps[i] ~ dnorm(sal.eps[i-1]*(sal.phi^dt[i-1]), sal.pc[i])T(-0.1, 0.1)
+  sal[i] <- sal[1] * (1 + sal.eps[i])
   
+  # pco2 (uatm)
+  pco2.pc[i] <- pco2.tau*((1-pco2.phi^2)/(1-pco2.phi^(2*dt[i-1])))
+  pco2.eps[i] ~ dnorm(pco2.eps[i-1]*(pco2.phi^dt[i-1]), pco2.pc[i])
+  pco2[i] <- pco2[i-1] + pco2.eps[i]
   
+  # d13C of atmospheric co2 (per mille VPDB) 
+  d13C.co2.pc[i] <- d13C.co2.tau*((1-d13C.co2.phi^2)/(1-d13C.co2.phi^(2*dt[i-1])))
+  d13C.co2.eps[i] ~ dnorm(d13C.co2.eps[i-1]*(d13C.co2.phi^dt[i-1]), d13C.co2.pc[i])T(-2, 2)
+  d13C.co2[i] <- d13C.co2[i-1] + d13C.co2.eps[i]
   
-  # Temperature (degrees C)
-  tempC[i] ~ dnorm(tempC.m, tempC.p)
-  
-  # Salintiy (ppt)
-  sal[i] ~ dnorm(sal.m, sal.p)T(0,)
-  
-  # pCO2 (uatm)
-  pco2[i] ~ dnorm(pco2.m, pco2.p)T(125,375)#dunif(pco2.l, pco2.u)
-  
-  # d13C of aqueous CO2 (per mille)
-  d13C.co2[i] ~ dnorm(d13C.co2.m, d13C.co2.p)
-  
-  
-  
- 
-  
+  # [PO4] (umol kg^-1)
+  po4.pc[i] <- po4.tau*((1-po4.phi^2)/(1-po4.phi^(2*dt[i-1])))
+  po4.eps[i] ~ dnorm(po4.eps[i-1]*(po4.phi^dt[i-1]), po4.pc[i])T(-0.1, 0.1)
+  for (j in 1:length(po4.m)){
+    po4[i,j] <- po4[i-1,j] * (1 + po4.eps[i])
+  }
   
   # Mean cell radius (m)
-  rm[i] ~ dnorm(rm.m, rm.p)T(0,5)
+  rm.pc[i] <- rm.tau*((1-rm.phi^2)/(1-rm.phi^(2*dt[i-1])))
+  rm.eps[i] ~ dnorm(rm.eps[i-1]*(rm.phi^dt[i-1]), rm.pc[i])T(-0.1, 0.1)
+  rm[i] <- rm[i-1] * (1 + rm.eps[i])
 }
 ############################################################################################   
 }

@@ -71,13 +71,53 @@ names(prox.in) <- c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.d
 prox.in <- prox.in[complete.cases(prox.in[,c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
                                              "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")]), ]
 
-# Data ages
+po4.m <- unique(prox.in$po4.prior)
+
+# Setup age range and bins 
 ages.prox <- unique(round(prox.in$age, digits=1))
-ages.prox <- sort(ages.prox, decreasing = TRUE) 
+ages.prox.max <- max(ages.prox)
+dt <- abs(diff(ages.prox, lag=1))
+
+# Age index proxy data
+prox.in <- transform(prox.in,ai=as.numeric(factor(round(age*-1, digits=1))))
 
 # Site index proxy data
 prox.in <- transform(prox.in,site.index=as.numeric(factor(site)))
-site.index <- c(prox.in$site.index)
+
+
+# Groom input data 
+clean.d13Cmarker <- prox.in[complete.cases(prox.in$d13Cmarker.data), ]
+clean.d13Cpf <- prox.in[complete.cases(prox.in$d13Cpf.data), ]
+clean.len.lith <- prox.in[complete.cases(prox.in$len.lith.data), ]
+clean.Uk <- prox.in[complete.cases(prox.in$Uk.data), ]
+
+# Vectors of age indexes and site indexes that contain d13Cmarker proxy data (with duplicates)
+ai.d13Cmarker <- sort(c(clean.d13Cmarker$ai), decreasing = FALSE)  
+site.index.d13Cmarker <- sort(c(clean.d13Cmarker$site.index), decreasing = FALSE)
+
+# Vector of age indexes that contain d13Cpf proxy data (with duplicates)
+ai.d13Cpf <- sort(c(clean.d13Cpf$ai), decreasing = FALSE)    
+
+# Vector of age indexes that contain len.lith proxy data (with duplicates)
+ai.len.lith <- sort(c(clean.len.lith$ai), decreasing = FALSE)    
+
+# Vector of age indexes that contain Uk'37 proxy data (with duplicates)
+ai.Uk <- sort(c(clean.Uk$ai), decreasing = FALSE)    
+
+# Vector of age indexes for all data
+ai.all <- c(ai.d13Cmarker, ai.d13Cpf, ai.len.lith, ai.Uk)
+
+# Index vector which contains each environmental time step that has one or more proxy data
+ai.prox <-  unique(ai.all)     
+ai.prox <- sort(ai.prox, decreasing = FALSE) 
+ages.prox <- sort(ages.prox, decreasing = TRUE) 
+n.steps <- length(ai.prox)
+
+# Prior time bin vectors for which there are proxy data (includes duplicates)
+# ai.d13Cmarker <- match(ai.d13Cmarker, ai.prox)
+# ai.d13Cpf <- match(ai.d13Cpf, ai.prox)
+# ai.len.lith <- match(ai.len.lith, ai.prox)
+# ai.Uk <- match(ai.Uk, ai.prox)
 ############################################################################################
 
 
@@ -139,7 +179,14 @@ data.pass = list("coeff.mat" = coeff.mat,
                  "Uk.data" = prox.in$Uk.data,
                  "Uk.data.sd" = prox.in$Uk.data.sd,
                  "ages.prox" = ages.prox,
-                 "site.index" = site.index,
+                 "n.steps" = n.steps,
+                 "dt" = dt,
+                 "ai.prox" = ai.prox, 
+                 "ai.d13Cmarker" = ai.d13Cmarker,
+                 "site.index.d13Cmarker" = site.index.d13Cmarker,
+                 "ai.d13Cpf" = ai.d13Cpf,
+                 "ai.len.lith" = ai.len.lith, 
+                 "ai.Uk" = ai.Uk, 
                  "tempC.m" = tempC.m,
                  "tempC.p" = tempC.p,
                  "sal.m" = sal.m,
@@ -164,8 +211,8 @@ parms2 = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b", "coeff.po4", "c
 # Run the inversion using jags 
 ############################################################################################
 inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_TS.R", parameters.to.save = parms2,
-                          inits = NULL, n.chains = 3, n.iter = 5e5,
-                          n.burnin = 2e5, n.thin = 100)
+                          inits = NULL, n.chains = 3, n.iter = 500,
+                          n.burnin = 100, n.thin = 1)
 ############################################################################################
 
 
