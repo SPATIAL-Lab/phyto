@@ -152,7 +152,7 @@ rm.p = 1/(0.5*10^-6)^2
 
 # Option to load ice core data-derived mui and size equation parameters 
 ############################################################################################
-coeff.mat <- read.csv("model_out/coeff_mat_culture.csv")
+coeff.mat <- read.csv("model_out/coeff_mat_ice.csv")
 coeff.mat <- coeff.mat[,2:4]
 ############################################################################################
 
@@ -211,8 +211,8 @@ parms2 = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b", "coeff.po4", "c
 # Run the inversion using jags 
 ############################################################################################
 inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_TS.R", parameters.to.save = parms2,
-                          inits = NULL, n.chains = 3, n.iter = 500,
-                          n.burnin = 100, n.thin = 1)
+                          inits = NULL, n.chains = 3, n.iter = 5e5,
+                          n.burnin = 1e5, n.thin = 100)
 ############################################################################################
 
 

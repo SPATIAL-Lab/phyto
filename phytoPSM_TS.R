@@ -46,7 +46,6 @@ Uk.int <- 1.334
 Uk.cal.se <- 1.1
 
 # Sample coefficient matrix for mui = f(po4, rm), length.lith = f(rm) and coccosphere.diam = f (rm) relationships
-# coeff.ind ~ dcat(1:length(coeff.mat[,1]))
 coeff.ind ~ dunif(1,length(coeff.mat[,1]))
 coeff.int <- round(coeff.ind)
 coeff.po4 <- coeff.mat[coeff.int,1]

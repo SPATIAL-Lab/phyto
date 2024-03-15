@@ -182,7 +182,7 @@ parms = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b", "coeff.po4", "co
 
 # Run the inversion using jags 
 ############################################################################################
-inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal_gjb_ice.R", parameters.to.save = parms,
+inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal.R", parameters.to.save = parms,
                           inits = NULL, n.chains = 3, n.iter = 1e7,
                           n.burnin = 5e5, n.thin = 100)
 
