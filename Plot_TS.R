@@ -14,7 +14,7 @@ library(tidyverse)
 ###########################################################################################
 # Extract data for plotting
 ###########################################################################################
-
+n.steps <- length(ages.prox)
 step.vector <- seq(1, n.steps, by=1)
 parms.out <- inv.out$BUGSoutput$summary
 parms.out <- data.frame(parms.out)

@@ -83,7 +83,48 @@ for (i in 1:length(tempC.vr)){
 ############################################################################################
 
 
-# Load proxy data to evaluate against 
+# Load GIG calibration data to evaluate against 
+############################################################################################
+prox.in.gig <- read.csv('data/timeseriesGIG.csv')
+prox.in.gig <- prox.in.gig[,c(1:12)]
+names(prox.in.gig) <- c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
+                    "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")
+prox.in.gig <- prox.in.gig[complete.cases(prox.in.gig[,c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
+                                             "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")]), ]
+
+# Site index proxy data
+prox.in.gig <- transform(prox.in.gig,site.index=as.numeric(factor(site)))
+site.index.gig <- c(prox.in.gig$site.index)
+
+# Set prior distributions for GIG calibration data 
+
+# Temperature (degrees C)
+tempC.m.gig = 22
+tempC.p.gig = 1/5^2
+
+# Salintiy (ppt)
+sal.m.gig = 35
+sal.p.gig = 1/0.5^2
+
+# pCO2 (uatm)
+pco2.u.gig = 500
+pco2.l.gig = 100
+
+# d13C of aqueous CO2 (per mille)
+d13C.co2.m.gig = -8
+d13C.co2.p.gig = 1/1^2
+
+# Concentration of phosphate (PO4; umol/kg)
+po4.m.gig = unique(prox.in.gig$po4.prior)
+po4.p.gig = 1/0.25^2 # 1/0.1^2
+
+# Mean cell radius (m)
+rm.m.gig = 1.5*10^-6
+rm.p.gig = 1/(0.5*10^-6)^2
+############################################################################################
+
+
+# Load time series proxy data for reconstruction
 ############################################################################################
 prox.in <- read.csv('data/timeseriesGIG.csv')
 prox.in <- prox.in[,c(1:12)]
@@ -97,11 +138,8 @@ prox.in <- transform(prox.in,site.index=as.numeric(factor(site)))
 site.index <- c(prox.in$site.index)
 ages.prox <- unique(prox.in$age)
 n.steps <- length(ages.prox)
-############################################################################################
 
-
-# Set prior distributions to send to model
-############################################################################################
+# Set prior distributions for time series data 
 # Temperature (degrees C)
 tempC.m = 22
 tempC.p = 1/5^2
@@ -150,6 +188,29 @@ data.pass = list("po4.co.lr" = po4.co.lr,
                  "tempC.lb" = tempC.lb,
                  "t.inc" = t.inc,
                  "s.inc" = s.inc,
+                 "d13Cmarker.data.gig" = prox.in.gig$d13Cmarker.data,
+                 "d13Cmarker.data.sd.gig" = prox.in.gig$d13Cmarker.data.sd,
+                 "d13Cpf.data.gig" = prox.in.gig$d13Cpf.data,
+                 "d13Cpf.data.sd.gig" = prox.in.gig$d13Cpf.data.sd,
+                 "len.lith.data.gig" = prox.in.gig$len.lith.data,
+                 "len.lith.data.sd.gig" = prox.in.gig$len.lith.data.sd,
+                 "Uk.data.gig" = prox.in.gig$Uk.data,
+                 "Uk.data.sd.gig" = prox.in.gig$Uk.data.sd,
+                 "iceco2.data.gig" = prox.in.gig$iceco2.data,
+                 "site.index.gig" = site.index.gig,
+                 "tempC.m.gig" = tempC.m.gig,
+                 "tempC.p.gig" = tempC.p.gig,
+                 "sal.m.gig" = sal.m.gig,
+                 "sal.p.gig" = sal.p.gig,
+                 "pco2.u.gig" = pco2.u.gig,
+                 "pco2.l.gig" = pco2.l.gig,
+                 "d13C.co2.m.gig" = d13C.co2.m.gig,
+                 "d13C.co2.p.gig" = d13C.co2.p.gig,
+                 "po4.m.gig" = po4.m.gig,
+                 "po4.m.cd.gig" = po4.m.cd.gig,
+                 "po4.p.gig" = po4.p.gig,
+                 "rm.m.gig" = rm.m.gig,
+                 "rm.p.gig" = rm.p.gig,
                  "d13Cmarker.data" = prox.in$d13Cmarker.data,
                  "d13Cmarker.data.sd" = prox.in$d13Cmarker.data.sd,
                  "d13Cpf.data" = prox.in$d13Cpf.data,
@@ -158,7 +219,6 @@ data.pass = list("po4.co.lr" = po4.co.lr,
                  "len.lith.data.sd" = prox.in$len.lith.data.sd,
                  "Uk.data" = prox.in$Uk.data,
                  "Uk.data.sd" = prox.in$Uk.data.sd,
-                 "iceco2.data" = prox.in$iceco2.data,
                  "site.index" = site.index,
                  "tempC.m" = tempC.m,
                  "tempC.p" = tempC.p,
@@ -178,15 +238,15 @@ data.pass = list("po4.co.lr" = po4.co.lr,
 
 # Parameters to save as output 
 ############################################################################################
-parms = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b", "coeff.po4", "coeff.rm", "mui.y.int")
+parms = c("tempC", "sal", "pco2", "pco2.gig", "d13C.co2", "po4", "rm", "b", "coeff.po4", "coeff.rm", "mui.y.int")
 ############################################################################################
 
 
 # Run the inversion using jags 
 ############################################################################################
-inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal.R", parameters.to.save = parms,
-                          inits = NULL, n.chains = 3, n.iter = 10000,
-                          n.burnin = 5000, n.thin = 1)
+inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal_integ.R", parameters.to.save = parms,
+                          inits = NULL, n.chains = 3, n.iter = 5e5,
+                          n.burnin = 2e5, n.thin = 100)
 
 ############################################################################################
 
@@ -196,6 +256,6 @@ inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal.R", param
 # coeff.mat <- cbind(inv.out[["BUGSoutput"]][["sims.list"]][["coeff.po4"]], 
 #                        inv.out[["BUGSoutput"]][["sims.list"]][["coeff.rm"]], 
 #                        inv.out[["BUGSoutput"]][["sims.list"]][["mui.y.int"]])
-# write.csv(coeff.mat, file = "model_out/coeff_mat_ice_culture.csv")
+# write.csv(coeff.mat, file = "model_out/coeff_mat_ice.csv")
 
 
