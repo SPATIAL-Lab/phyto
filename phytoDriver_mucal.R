@@ -86,13 +86,14 @@ for (i in 1:length(tempC.vr)){
 # Load proxy data to evaluate against 
 ############################################################################################
 prox.in <- read.csv('data/timeseriesGIG.csv')
-prox.in <- prox.in[,c(1:12)]
+#prox.in <- prox.in[,c(1:12)]
 names(prox.in) <- c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
                     "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")
 prox.in <- prox.in[complete.cases(prox.in[,c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
                                              "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")]), ]
 
 # Site index proxy data
+prox.in <- prox.in[order(prox.in$site),]
 prox.in <- transform(prox.in,site.index=as.numeric(factor(site)))
 site.index <- c(prox.in$site.index)
 ages.prox <- unique(prox.in$age)
@@ -111,8 +112,8 @@ sal.m = 35
 sal.p = 1/0.5^2
 
 # pCO2 (uatm)
-pco2.u = 500
-pco2.l = 100
+pco2.m = 250
+pco2.p = 1/40^2
 
 # d13C of aqueous CO2 (per mille)
 d13C.co2.m = -8
@@ -164,8 +165,8 @@ data.pass = list("po4.co.lr" = po4.co.lr,
                  "tempC.p" = tempC.p,
                  "sal.m" = sal.m,
                  "sal.p" = sal.p,
-                 "pco2.u" = pco2.u,
-                 "pco2.l" = pco2.l,
+                 "pco2.m" = pco2.m,
+                 "pco2.p" = pco2.p,
                  "d13C.co2.m" = d13C.co2.m,
                  "d13C.co2.p" = d13C.co2.p,
                  "po4.m" = po4.m,
@@ -185,17 +186,17 @@ parms = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b", "coeff.po4", "co
 # Run the inversion using jags 
 ############################################################################################
 inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal.R", parameters.to.save = parms,
-                          inits = NULL, n.chains = 3, n.iter = 10000,
-                          n.burnin = 5000, n.thin = 1)
+                          inits = NULL, n.chains = 3, n.iter = 5e5,
+                          n.burnin = 2e5, n.thin = 100)
 
 ############################################################################################
 
 
 # Save model parameters governing mui relationship w/ size and po4
 ############################################################################################
-# coeff.mat <- cbind(inv.out[["BUGSoutput"]][["sims.list"]][["coeff.po4"]], 
-#                        inv.out[["BUGSoutput"]][["sims.list"]][["coeff.rm"]], 
-#                        inv.out[["BUGSoutput"]][["sims.list"]][["mui.y.int"]])
-# write.csv(coeff.mat, file = "model_out/coeff_mat_ice_culture.csv")
+coeff.mat <- cbind(inv.out[["BUGSoutput"]][["sims.list"]][["coeff.po4"]],
+                       inv.out[["BUGSoutput"]][["sims.list"]][["coeff.rm"]],
+                       inv.out[["BUGSoutput"]][["sims.list"]][["mui.y.int"]])
+write.csv(coeff.mat, file = "model_out/coeff_mat_ice_culture2.csv")
 
 

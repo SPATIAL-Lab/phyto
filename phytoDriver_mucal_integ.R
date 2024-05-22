@@ -86,13 +86,14 @@ for (i in 1:length(tempC.vr)){
 # Load GIG calibration data to evaluate against 
 ############################################################################################
 prox.in.gig <- read.csv('data/timeseriesGIG.csv')
-prox.in.gig <- prox.in.gig[,c(1:12)]
+#prox.in.gig <- prox.in.gig[,c(1:12)]
 names(prox.in.gig) <- c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
                     "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")
 prox.in.gig <- prox.in.gig[complete.cases(prox.in.gig[,c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
                                              "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")]), ]
 
 # Site index proxy data
+prox.in.gig <- prox.in.gig[order(prox.in.gig$site),]
 prox.in.gig <- transform(prox.in.gig,site.index=as.numeric(factor(site)))
 site.index.gig <- c(prox.in.gig$site.index)
 
@@ -107,8 +108,8 @@ sal.m.gig = 35
 sal.p.gig = 1/0.5^2
 
 # pCO2 (uatm)
-pco2.u.gig = 500
-pco2.l.gig = 100
+pco2.m.gig = 250
+pco2.p.gig = 1/40^2
 
 # d13C of aqueous CO2 (per mille)
 d13C.co2.m.gig = -8
@@ -127,13 +128,14 @@ rm.p.gig = 1/(0.5*10^-6)^2
 # Load time series proxy data for reconstruction
 ############################################################################################
 prox.in <- read.csv('data/timeseriesGIG.csv')
-prox.in <- prox.in[,c(1:12)]
+#prox.in <- prox.in[,c(1:12)]
 names(prox.in) <- c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
                     "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")
 prox.in <- prox.in[complete.cases(prox.in[,c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
                                              "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")]), ]
 
 # Site index proxy data
+prox.in <- prox.in[order(prox.in$site),]
 prox.in <- transform(prox.in,site.index=as.numeric(factor(site)))
 site.index <- c(prox.in$site.index)
 ages.prox <- unique(prox.in$age)
@@ -149,8 +151,8 @@ sal.m = 35
 sal.p = 1/0.5^2
 
 # pCO2 (uatm)
-pco2.u = 500
-pco2.l = 100
+pco2.m = 250
+pco2.p = 1/40^2
 
 # d13C of aqueous CO2 (per mille)
 d13C.co2.m = -8
@@ -202,12 +204,11 @@ data.pass = list("po4.co.lr" = po4.co.lr,
                  "tempC.p.gig" = tempC.p.gig,
                  "sal.m.gig" = sal.m.gig,
                  "sal.p.gig" = sal.p.gig,
-                 "pco2.u.gig" = pco2.u.gig,
-                 "pco2.l.gig" = pco2.l.gig,
+                 "pco2.m.gig" = pco2.m.gig,
+                 "pco2.p.gig" = pco2.p.gig,
                  "d13C.co2.m.gig" = d13C.co2.m.gig,
                  "d13C.co2.p.gig" = d13C.co2.p.gig,
                  "po4.m.gig" = po4.m.gig,
-                 "po4.m.cd.gig" = po4.m.cd.gig,
                  "po4.p.gig" = po4.p.gig,
                  "rm.m.gig" = rm.m.gig,
                  "rm.p.gig" = rm.p.gig,
@@ -224,8 +225,8 @@ data.pass = list("po4.co.lr" = po4.co.lr,
                  "tempC.p" = tempC.p,
                  "sal.m" = sal.m,
                  "sal.p" = sal.p,
-                 "pco2.u" = pco2.u,
-                 "pco2.l" = pco2.l,
+                 "pco2.m" = pco2.m,
+                 "pco2.p" = pco2.p,
                  "d13C.co2.m" = d13C.co2.m,
                  "d13C.co2.p" = d13C.co2.p,
                  "po4.m" = po4.m,
@@ -256,6 +257,6 @@ inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal_integ.R",
 # coeff.mat <- cbind(inv.out[["BUGSoutput"]][["sims.list"]][["coeff.po4"]], 
 #                        inv.out[["BUGSoutput"]][["sims.list"]][["coeff.rm"]], 
 #                        inv.out[["BUGSoutput"]][["sims.list"]][["mui.y.int"]])
-# write.csv(coeff.mat, file = "model_out/coeff_mat_ice.csv")
+
 
 

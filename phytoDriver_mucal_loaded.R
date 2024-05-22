@@ -71,13 +71,14 @@ names(prox.in) <- c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.d
 prox.in <- prox.in[complete.cases(prox.in[,c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
                                              "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd")]), ]
 
+# Site index proxy data
+prox.in <- prox.in[order(prox.in$site),]
+prox.in <- transform(prox.in,site.index=as.numeric(factor(site)))
+site.index <- c(prox.in$site.index)
+
 # Data ages
 ages.prox <- unique(round(prox.in$age, digits=1))
 ages.prox <- sort(ages.prox, decreasing = TRUE) 
-
-# Site index proxy data
-prox.in <- transform(prox.in,site.index=as.numeric(factor(site)))
-site.index <- c(prox.in$site.index)
 ############################################################################################
 
 
@@ -92,8 +93,6 @@ sal.m = 35
 sal.p = 1/0.5^2
 
 # pCO2 (uatm)
-#pco2.u = 500
-#pco2.l = 150
 pco2.m = 250
 pco2.p = 1/40^2
 
@@ -112,7 +111,7 @@ rm.p = 1/(0.5*10^-6)^2
 
 # Load mui and size equation parameters 
 ############################################################################################
-coeff.mat <- read.csv("model_out/coeff_mat_ice_culture.csv")
+coeff.mat <- read.csv("model_out/coeff_mat_ice_culture2.csv")
 coeff.mat <- coeff.mat[,2:4]
 ############################################################################################
 
