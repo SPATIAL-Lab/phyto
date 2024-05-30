@@ -95,7 +95,7 @@ for (i in 1:length(radius.cd)){
   po4.cd[i] ~ dnorm(po4.m.cd, po4.p)T(0,2)
 
   # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean
-  mui.cd[i] <- coeff.po4*po4.cd[i] + coeff.rm*(rm.cd[i]*10^6) + mui.y.int
+  mui.cd[i] <- coeff.po4*po4.cd[i] + coeff.rm*rm.cd[i] + mui.y.int
 }
 ############################################################################################ 
 
@@ -143,7 +143,7 @@ for (i in 1:length(d13Cmarker.data)){
 
 
   # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean
-  mui[i] <- coeff.po4*po4[i] + coeff.rm*(rm[i]*10^6) + mui.y.int
+  mui[i] <- coeff.po4*po4[i] + coeff.rm*rm[i] + mui.y.int
   # Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
   Qr[i] <- mui[i]/log(2) * gam.c[i]
   Qs[i] <- Qr[i] / (4*3.141593*(rm[i]^2))
@@ -174,7 +174,7 @@ d13C.co2[i] ~ dnorm(d13C.co2.m, d13C.co2.p)
 # Concentration of phosphate (PO4; umol/kg)
 po4[i] ~ dnorm(po4.m[site.index[i]], po4.p)T(0,2)
 # Mean cell radius (m)
-rm[i] ~ dnorm(rm.m, rm.p)T(0,5)
+rm[i] ~ dnorm(rm.m, rm.p)T(0,5e-6)
 }
 ############################################################################################   
 }

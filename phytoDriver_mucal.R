@@ -1,9 +1,11 @@
 
 
-# Phytoplankton forward PSM driver without environmental time series model; includes ice core CO2 data
-############################################################################################  
-#
+# Phytoplankton forward PSM driver for generating matrix of mui coefficients and y intercepts
+# Incorporates both modern observational data and GIG data to calibrate mui = f(radius, po4)
 # Dustin T. Harper
+############################################################################################  
+
+# Load libraries 
 ############################################################################################  
 library(rjags)
 library(R2jags)
@@ -16,9 +18,10 @@ library(R2jags)
 # with calculated mean radius from measured coccosphere using Henderiks and Pagani (2007) transfer functions
 cal.df <- read.csv('data/caldata_culture.csv')
 cal.df <- subset(cal.df, is.na(cal.df$radius) | is.na(cal.df$po4) | cal.df$radius <= 10 & cal.df$po4 <= 2)
+cal.df$radius <- cal.df$radius*1e-6
 
 # Generate multiple linear regression model mu,i (as a function of [PO4] and mean radius)
-igr.model = lm(formula = cal.df$mui ~ cal.df$po4 + cal.df$r, data = cal.df)
+igr.model = lm(formula = cal.df$mui ~ cal.df$po4 + cal.df$radius, data = cal.df)
 igr.model.sum <- summary(igr.model)
 
 #    Load prior coefficients and SEs for mui = f(po4, rm) from multi linear regression 
@@ -142,7 +145,7 @@ data.pass = list("po4.co.lr" = po4.co.lr,
                  "cocco.b" = cocco.b,
                  "lith.m" = lith.m,
                  "lith.b" = lith.b,
-                 "radius.cd" = cal.df$radius*1e-6,
+                 "radius.cd" = cal.df$radius,
                  "po4.cd.data" = cal.df$po4,
                  "mui.cd.data" = cal.df$mui,
                  "K0a" = K0a,
@@ -197,6 +200,9 @@ inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_mucal.R", param
 coeff.mat <- cbind(inv.out[["BUGSoutput"]][["sims.list"]][["coeff.po4"]],
                        inv.out[["BUGSoutput"]][["sims.list"]][["coeff.rm"]],
                        inv.out[["BUGSoutput"]][["sims.list"]][["mui.y.int"]])
-write.csv(coeff.mat, file = "model_out/coeff_mat_ice_culture2.csv")
+write.csv(coeff.mat, file = "model_out/coeff_mui.csv")
 
+
+
+View(inv.out$BUGSoutput$summary)
 
