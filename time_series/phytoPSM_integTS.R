@@ -326,7 +326,7 @@ for (i in 2:n.steps){
   # Concentration of phosphate (PO4; umol/kg)
   po4.pc[i] <- po4.tau*((1-po4.phi^2)/(1-po4.phi^(2*dt[i-1])))
   po4.eps[i] ~ dnorm(po4.eps[i-1]*(po4.phi^dt[i-1]), po4.pc[i])T(-0.3, 0.3)
-  for (j in 1:length(po4.m)){
+  for (j in 1:n.sites){
     po4[i,j] <- po4[i-1,j] * (1 + po4.eps[i])
   }
   
