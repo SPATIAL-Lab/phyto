@@ -2,6 +2,7 @@
 
 # Phytoplankton forward PSM driver for paleo reconstruction, mui calibration integrated in jags model
 # Incorporates both modern observational data and GIG data to calibrate mui = f(radius, po4)
+# Includes autocorrelated time evolution model 
 # Dustin T. Harper
 ############################################################################################  
 
@@ -137,14 +138,44 @@ names(prox.in) <- c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.d
 prox.in <- prox.in[complete.cases(prox.in[,c("site", "age", "po4.prior", "d13Cmarker.data", "d13Cmarker.data.sd", "d13Cpf.data", 
                                              "d13Cpf.data.sd", "len.lith.data", "len.lith.data.sd", "Uk.data", "Uk.data.sd", "iceco2.data")]), ]
 
-# Site index proxy data
-prox.in <- prox.in[order(prox.in$site),]
+# Age and site index all proxy data; order prox.in and generate jags and plotting parameters 
+prox.in <- transform(prox.in,ai=as.numeric(factor(round(age*-1))))
+prox.in <- prox.in[order(prox.in$age, decreasing = TRUE),]
 prox.in <- transform(prox.in,site.index=as.numeric(factor(site)))
 site.index <- c(prox.in$site.index)
-ages.prox <- unique(prox.in$age)
-n.steps <- length(ages.prox)
+n.sites <- as.numeric(length(unique(site.index)))
+ages.prox <- sort(unique(prox.in$age), decreasing = TRUE)
+dt <- abs(diff(ages.prox, lag=1))
+
+# parse clean.d11B by clean.d11B$species (clean.d11B1, clean.d11B2)
+clean.d13Cm <- prox.in[complete.cases(prox.in$d13Cmarker.data), ]
+clean.d13Cf <- prox.in[complete.cases(prox.in$d13Cpf.data), ]
+clean.lith <- prox.in[complete.cases(prox.in$len.lith.data), ]
+clean.Uk <- prox.in[complete.cases(prox.in$Uk.data), ]
+
+# Vectors of age indexes that contain specific proxy data (with duplicates)
+ai.d13Cm <- sort(c(as.integer(clean.d13Cm$ai)), decreasing = FALSE)    
+ai.d13Cf <- sort(c(as.integer(clean.d13Cf$ai)), decreasing = FALSE)     
+ai.lith <- sort(c(as.integer(clean.lith$ai)), decreasing = FALSE)
+ai.Uk <- sort(c(as.integer(clean.Uk$ai)), decreasing = FALSE)
+
+# Index vector which contains each environmental time step that has one or more proxy data
+ai.all <- c(ai.d13Cm, ai.d13Cf, ai.lith, ai.Uk)
+ai.prox <-  unique(ai.all)     
+ai.prox <- sort(ai.prox, decreasing = FALSE) 
+n.steps <- as.numeric(length(ai.prox))
+
+# Vectors of site indexes that contain specific proxy data (with duplicates) 
+si.d13Cm <- clean.d13Cm$site.index
+si.d13Cf <- clean.d13Cf$site.index 
+si.lith <- clean.lith$site.index
+si.Uk <- clean.Uk$site.index
+
+############################################################################################
+
 
 # Set prior distributions for time series data 
+############################################################################################
 # Temperature (degrees C)
 tempC.m = 22
 tempC.p = 1/5^2
@@ -164,7 +195,7 @@ d13C.co2.p = 1/1^2
 # Concentration of phosphate (PO4; umol/kg)
 po4.m.cd = 1.5
 po4.m = unique(prox.in$po4.prior)
-po4.p = 1/0.25^2 # 1/0.1^2
+po4.p = 1/0.25^2 
 
 # Mean cell radius (m)
 rm.m = 1.5*10^-6
@@ -174,7 +205,20 @@ rm.p = 1/(0.5*10^-6)^2
 
 # Select data to pass to jags 
 ############################################################################################
-data.pass = list("po4.co.lr" = po4.co.lr, 
+data.pass = list("ai.d13Cm" = ai.d13Cm,   
+                 "ai.d13Cf" = ai.d13Cf,   
+                 "ai.lith" = ai.lith,
+                 "ai.Uk" = ai.Uk,
+                 "ai.prox" = ai.prox,
+                 "dt" = dt,
+                 "n.steps" = n.steps,
+                 "site.index" = site.index,
+                 "n.sites" = n.sites,
+                 "si.d13Cm" = si.d13Cm,
+                 "si.d13Cf" = si.d13Cf,
+                 "si.lith" = si.lith,
+                 "si.Uk" = si.Uk,
+                 "po4.co.lr" = po4.co.lr, 
                  "po4.se.lr" = po4.se.lr, 
                  "r.co.lr" = r.co.lr, 
                  "r.se.lr" = r.se.lr,
@@ -215,15 +259,14 @@ data.pass = list("po4.co.lr" = po4.co.lr,
                  "po4.p.gig" = po4.p.gig,
                  "rm.m.gig" = rm.m.gig,
                  "rm.p.gig" = rm.p.gig,
-                 "d13Cmarker.data" = prox.in$d13Cmarker.data,
-                 "d13Cmarker.data.sd" = prox.in$d13Cmarker.data.sd,
-                 "d13Cpf.data" = prox.in$d13Cpf.data,
-                 "d13Cpf.data.sd" = prox.in$d13Cpf.data.sd,
-                 "len.lith.data" = prox.in$len.lith.data,
-                 "len.lith.data.sd" = prox.in$len.lith.data.sd,
-                 "Uk.data" = prox.in$Uk.data,
-                 "Uk.data.sd" = prox.in$Uk.data.sd,
-                 "site.index" = site.index,
+                 "d13Cmarker.data" = clean.d13Cm$d13Cmarker.data,
+                 "d13Cmarker.data.sd" = clean.d13Cm$d13Cmarker.data.sd,
+                 "d13Cpf.data" = clean.d13Cf$d13Cpf.data,
+                 "d13Cpf.data.sd" = clean.d13Cf$d13Cpf.data.sd,
+                 "len.lith.data" = clean.lith$len.lith.data,
+                 "len.lith.data.sd" = clean.lith$len.lith.data.sd,
+                 "Uk.data" = clean.Uk$Uk.data,
+                 "Uk.data.sd" = clean.Uk$Uk.data.sd,
                  "tempC.m" = tempC.m,
                  "tempC.p" = tempC.p,
                  "sal.m" = sal.m,
@@ -242,15 +285,15 @@ data.pass = list("po4.co.lr" = po4.co.lr,
 
 # Parameters to save as output 
 ############################################################################################
-parms = c("tempC", "sal", "pco2", "pco2.gig", "d13C.co2", "po4", "rm", "b", "coeff.po4", "coeff.rm", "mui.y.int")
+parms = c("tempC", "sal", "pco2", "d13C.co2", "po4", "rm", "b", "mui", "coeff.po4", "coeff.rm", "mui.y.int")
 ############################################################################################
 
 
 # Run the inversion using jags 
 ############################################################################################
-inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_integ.R", parameters.to.save = parms,
-                          inits = NULL, n.chains = 3, n.iter = 5e5,
-                          n.burnin = 2e5, n.thin = 100)
+inv.out = jags.parallel(data = data.pass, model.file = "time_series/phytoPSM_integTS.R", parameters.to.save = parms,
+                          inits = NULL, n.chains = 3, n.iter = 1e3,
+                          n.burnin = 5e2, n.thin = 1)
 
 ############################################################################################
 

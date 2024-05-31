@@ -3,6 +3,19 @@ model {
 
 # Likelihood function: this block evaluates the data against the modeled values
 ############################################################################################ 
+
+  # Modern calibration data   
+  for (i in 1:length(mui.cd.data)){
+    mui.cd.data[i] ~ dnorm(mui.cd[i], 1/(1e-6)^2)
+  }
+  
+  for(i in 1:length(radius.cd)){
+    radius.cd[i] ~ dnorm(rm.cd[i], 1 / 0.25e-6^2)
+  }
+  
+  for(i in 1:length(po4.cd.data)){
+    po4.cd.data[i] ~ dnorm(po4.cd[i], 1 / 0.05^2)
+  }
   
     
   # GIG calibration data
@@ -32,23 +45,23 @@ model {
 
   
   # Time series data
-  for (i in 1:length(d13Cmarker.data)){
-    d13Cmarker.data[i] ~ dnorm(d13Cmarker[i], d13Cmarker.p[i])
+  for (i in 1:length(ai.d13Cm)){
+    d13Cmarker.data[i] ~ dnorm(d13Cmarker[ai.d13Cm[i], si.d13Cm[i]], d13Cmarker.p[i])
     d13Cmarker.p[i] = 1/d13Cmarker.data.sd[i]^2 # Gaussian precision for d13Cmarker measurements from sd
   }
   
-  for (i in 1:length(d13Cpf.data)){
-    d13Cpf.data[i] ~ dnorm(d13Cpf[i], d13Cpf.p[i])
+  for (i in 1:length(ai.d13Cf)){
+    d13Cpf.data[i] ~ dnorm(d13Cpf[ai.d13Cf[i]], d13Cpf.p[i])
     d13Cpf.p[i] = 1/d13Cpf.data.sd[i]^2 # Gaussian precision for d13Cpf measurements from sd
   }
   
-  for (i in 1:length(len.lith.data)){
-    len.lith.data[i] ~ dnorm(len.lith[i], len.lith.p[i])
+  for (i in 1:length(ai.lith)){
+    len.lith.data[i] ~ dnorm(len.lith[ai.lith[i]], len.lith.p[i])
     len.lith.p[i] = 1/(len.lith.data.sd[i])^2  # Gaussian precision for length of coccolith measurements from sd
   }
   
-  for (i in 1:length(Uk.data)){
-    Uk.data[i] ~ dnorm(Uk[i], Uk.p[i])
+  for (i in 1:length(ai.Uk)){
+    Uk.data[i] ~ dnorm(Uk[ai.Uk[i]], Uk.p[i])
     Uk.p[i] = 1/(Uk.data.sd[i])^2  # Gaussian precision for Uk'37 measurements from sd
   }  
 ############################################################################################ 
@@ -92,6 +105,21 @@ coeff.rm ~ dnorm(r.co.lr, 1/(r.se.lr)^2)
 mui.y.int ~ dnorm(y.int.lr, 1/(y.int.se.lr)^2)
 ############################################################################################ 
 
+
+############################################################################################  
+# Proxy System Model - modern calibration data
+############################################################################################  
+# 
+for (i in 1:length(radius.cd)){
+  # Mean cell radius (m)
+  rm.cd[i] ~ dnorm(rm.m, rm.p)T(0,5e-6)
+
+  po4.cd[i] ~ dnorm(po4.m.cd, po4.p)T(0,2)
+
+  # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean
+  mui.cd[i] <- coeff.po4*po4.cd[i] + coeff.rm*rm.cd[i] + mui.y.int
+}
+############################################################################################ 
 
 
 # Proxy System Model - GIG calibration data
@@ -173,76 +201,141 @@ rm.gig[i] ~ dnorm(rm.m.gig, rm.p.gig)T(0,5e-6)
 ############################################################################################   
 # Proxy System Model - time series data
 ############################################################################################
-for (i in 1:length(d13Cmarker.data)){
+for (i in 1:n.steps){
   # Calculate Uk'37 from temperature
-  Uk[i] <- (tempC[i] + Uk.int)/Uk.sl
-  temp[i] <- tempC[i] + 273.15
+  Uk[i] <- (tempC[ai.prox[i]] + Uk.int)/Uk.sl
+  temp[i] <- tempC[ai.prox[i]] + 273.15
   
   # Pull K0 and Ksw from driver look up tables
-  t.index[i] <- min(max(round((tempC[i]-tempC.lb)/t.inc)+1, 0), 261)
-  s.index[i] <- min(max(round((sal[i]-sal.lb)/s.inc)+1, 0), 181)
+  t.index[i] <- min(max(round((tempC[ai.prox[i]]-tempC.lb)/t.inc)+1, 0), 261)
+  s.index[i] <- min(max(round((sal[ai.prox[i]]-sal.lb)/s.inc)+1, 0), 181)
   K0[i] <- K0a[t.index[i], s.index[i]]
   Ksw.noP[i] <- Ksw_sta[t.index[i], s.index[i]]
   
   # Calculate aqueous CO2 from atmospheric CO2 with Henry's law (carb chem)
-  fco2[i] <- pco2[i]*0.9968
+  fco2[i] <- pco2[ai.prox[i]]*0.9968
   co2[i] <- fco2[i]*K0[i]*10^-3 # mol/m^3 (uM)
   
   # Calculate length of the coccolith and diameter of coccosphere from mean radius (rm)
-  len.lith[i] <- lith.m*(rm[i]*10^6) + lith.b  # in um
+  len.lith[i] <- lith.m*(rm[ai.prox[i]]*10^6) + lith.b  # in um
   
   # Calculate cell carbon content
-  cell.vol[i] <- 4/3*3.141593*((rm[i])^3) # in m^3
-  cell.vol.um[i] <- 4/3*3.141593*((rm[i]*10^6)^3) # in um^3
+  cell.vol[i] <- 4/3*3.141593*((rm[ai.prox[i]])^3) # in m^3
+  cell.vol.um[i] <- 4/3*3.141593*((rm[ai.prox[i]]*10^6)^3) # in um^3
   gam.c[i] <- 1.46*10^-14*cell.vol.um[i]
   
   # Calculate DT (temperature-sensitive diffusivity of C02(aq)in seawater) from SST using eqn. 8 of Rau et al. (1996)
   DTi[i] <- 5.019*(10^-6)*exp(-(19510/(R.gc*temp[i])))
-  DT[i] <- DTi[i]*(0.9508 - 7.389*(10^-4)*tempC[i])
+  DT[i] <- DTi[i]*(0.9508 - 7.389*(10^-4)*tempC[ai.prox[i]])
   
   # Calculate rK (reacto-diffusive length) from SSS and SST using eqns. 6 and 7 of Rau et al. (1996); rate coeffs. follow Zhang et al. (2020)
   k.one[i] <- 8718*(exp(-(62800/(R.gc*temp[i]))))
-  k.two[i] <- (680.5-4.72*sal[i])*10^8*(exp(-(69400/(R.gc*temp[i]))))
+  k.two[i] <- (680.5-4.72*sal[ai.prox[i]])*10^8*(exp(-(69400/(R.gc*temp[i]))))
   hydrox[i] <- Ksw.noP[i] / hyd.const
   k.pr[i] <- k.one[i]*hydrox[i] + k.two[i]
   rk[i] <- sqrt(DT[i]/k.pr[i])
   
   # Calculate foram d13C from env parm d13C.co2 (rearranged eqns 19 and 20)
   eps.aog[i] <- (-373/temp[i]) + 0.19  # fractionation b/w CO2 (aq) and CO2 (g)
-  d13C.co2g[i] <- ((d13C.co2[i] + 1000) / (eps.aog[i]/1000 +1)) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
-  d13Cpf[i] <- ((11.98 - 0.12*tempC[i])/1000 + 1)*(d13C.co2g[i] + 1000) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
+  d13C.co2g[i] <- ((d13C.co2[ai.prox[i]] + 1000) / (eps.aog[i]/1000 +1)) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
+  d13Cpf[i] <- ((11.98 - 0.12*tempC[ai.prox[i]])/1000 + 1)*(d13C.co2g[i] + 1000) - 1000 # corrected; this appears to be incorrect when rearranged from supplement eqn 19b
   
   
-  # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean
-  mui[i] <- coeff.po4*po4[i] + coeff.rm*rm[i] + mui.y.int
-  # Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
-  Qr[i] <- mui[i]/log(2) * gam.c[i]
-  Qs[i] <- Qr[i] / (4*3.141593*(rm[i]^2))
-  #	Calculate b in uM from Qs, rmean, rK, DT, Pc, eps.f and eps.d using eqn. 15 of Rau et al (1996)
-  b[i] <- ((eps.f - eps.d) * Qs[i] * ((rm[i]/((1 + rm[i]/rk[i])*DT[i])) + 1/P.c)) * 10^3
-  # Calculate eps.p from [CO2](aq), eps.f and b
-  eps.p[i] <- eps.f - (b[i]/(co2[i]*10^3))
-  # Calculate d13C.biomass from d13C.co2 and epsilon.p (eqn 2)
-  d13C.biomass[i] <- ((d13C.co2[i] + 1000) / ((eps.p[i] / 1000) + 1)) - 1000
-  # Calculate d13C.marker from d13C.biomass (eqn 22)
-  d13Cmarker[i] <- ((d13C.biomass[i] + 1000) / ((eps.bob/1000)+1)) - 1000
-  
+  # "Spatial" component - po4 only for now 
+  for (j in 1:n.sites){
+    # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean 
+    mui[i,j] <- coeff.po4*po4[ai.prox[i],j] + coeff.rm*rm[ai.prox[i]] + mui.y.int
+    # Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
+    Qr[i,j] <- mui[i,j]/log(2) * gam.c[i]
+    Qs[i,j] <- Qr[i,j] / (4*3.141593*(rm[ai.prox[i]]^2))
+    #	Calculate b in uM from Qs, rmean, rK, DT, Pc, eps.f and eps.d using eqn. 15 of Rau et al (1996) 
+    b[i,j] <- ((eps.f - eps.d) * Qs[i,j] * ((rm[ai.prox[i]]/((1 + rm[ai.prox[i]]/rk[i])*DT[i])) + 1/P.c)) * 10^3
+    # Calculate eps.p from [CO2](aq), eps.f and b
+    eps.p[i,j] <- eps.f - (b[i,j]/(co2[i]*10^3))
+    # Calculate d13C.biomass from d13C.co2 and epsilon.p (eqn 2)
+    d13C.biomass[i,j] <- ((d13C.co2[ai.prox[i]] + 1000) / ((eps.p[i,j] / 1000) + 1)) - 1000
+    # Calculate d13C.marker from d13C.biomass (eqn 22)
+    d13Cmarker[i,j] <- ((d13C.biomass[i,j] + 1000) / ((eps.bob/1000)+1)) - 1000
+  }
 }
 
 # Environmental prior distributions 
-for (i in 1:length(d13Cmarker.data)){
-  # Temperature (degrees C)
-  tempC[i] ~ dnorm(tempC.m, tempC.p)
-  # Salintiy (ppt)
-  sal[i] ~ dnorm(sal.m, sal.p)T(0,)
+
+# Temp in C
+tempC[1] ~ dnorm(tempC.m, tempC.p)T(18,26) 
+tempC.phi ~ dbeta(5,2) 
+tempC.eps[1] = 0 
+tempC.tau ~ dgamma(100, 10)
+
+# Salinity (ppt)  
+sal[1] ~ dnorm(sal.m, sal.p)T(32,38)  
+sal.phi ~ dbeta(5,2)         
+sal.eps[1] = 0                 
+sal.tau ~ dgamma(1e2, 5e-3) 
+
+# pCO2 (uatm)
+pco2[1] ~ dnorm(pco2.m, pco2.p)T(125,375)
+pco2.phi ~ dbeta(5,2) 
+pco2.eps[1] = 0 
+pco2.tau ~ dgamma(100, 10)
+
+# d13C of aqueous CO2 (per mille)
+d13C.co2[1] ~ dnorm(d13C.co2.m, d13C.co2.p)T(-10,-6)    
+d13C.co2.phi ~ dbeta(5,2) 
+d13C.co2.eps[1] = 0 
+d13C.co2.tau ~ dgamma(1e3, 1e-3)
+
+# Concentration of phosphate (PO4; umol/kg)
+for (j in 1:n.sites){
+  po4[1,j] ~ dnorm(po4.m[j], po4.p)T(0,2)     
+}
+po4.phi ~ dbeta(5,2) 
+po4.eps[1] = 0 
+po4.tau ~ dgamma(1e3, 4e-4)
+
+# Mean cell radius (m)
+rm[1] ~ dnorm(rm.m, rm.p)T(0,5e-6)
+rm.phi ~ dbeta(5,2) 
+rm.eps[1] = 0 
+rm.tau ~ dgamma(1e3, 4e-4)
+
+
+# Time evolution model
+for (i in 2:n.steps){
+  
+  # Temp in C
+  tempC.pc[i] <- tempC.tau*((1-tempC.phi^2)/(1-tempC.phi^(2*dt[i-1]))) 
+  tempC.eps[i] ~ dnorm(tempC.eps[i-1]*(tempC.phi^dt[i-1]), tempC.pc[i])T(-6, 6)
+  tempC[i] <- tempC[1] + tempC.eps[i]
+  
+  # Salinity (ppt)  
+  sal.pc[i] <- sal.tau*((1-sal.phi^2)/(1-sal.phi^(2*dt[i-1])))   
+  sal.eps[i] ~ dnorm(sal.eps[i-1]*(sal.phi^dt[i-1]), sal.pc[i])T(-0.3, 0.3)
+  sal[i] <- sal[1] * (1 + sal.eps[i])
+  
   # pCO2 (uatm)
-  pco2[i] ~ dnorm(pco2.m, pco2.p)T(125,375)
+  pco2.pc[i] <- pco2.tau*((1-pco2.phi^2)/(1-pco2.phi^(2*dt[i-1])))
+  pco2.eps[i] ~ dnorm(pco2.eps[i-1]*(pco2.phi^dt[i-1]), pco2.pc[i])T(-100, 100)
+  pco2[i] <- pco2[1] + pco2.eps[i]
+  
   # d13C of aqueous CO2 (per mille)
-  d13C.co2[i] ~ dnorm(d13C.co2.m, d13C.co2.p)
+  d13C.co2.pc[i] <- d13C.co2.tau*((1-d13C.co2.phi^2)/(1-d13C.co2.phi^(2*dt[i-1])))
+  d13C.co2.eps[i] ~ dnorm(d13C.co2.eps[i-1]*(d13C.co2.phi^dt[i-1]), d13C.co2.pc[i])T(-2, 2)
+  d13C.co2[i] <- d13C.co2[1] + d13C.co2.eps[i]
+  
   # Concentration of phosphate (PO4; umol/kg)
-  po4[i] ~ dnorm(po4.m[site.index[i]], po4.p)T(0,2)
+  po4.pc[i] <- po4.tau*((1-po4.phi^2)/(1-po4.phi^(2*dt[i-1])))
+  po4.eps[i] ~ dnorm(po4.eps[i-1]*(po4.phi^dt[i-1]), po4.pc[i])T(-0.3, 0.3)
+  for (j in 1:length(po4.m)){
+    po4[i,j] <- po4[i-1,j] * (1 + po4.eps[i])
+  }
+  
   # Mean cell radius (m)
-  rm[i] ~ dnorm(rm.m, rm.p)T(0,5e-6)
+  rm.pc[i] <- rm.tau*((1-rm.phi^2)/(1-rm.phi^(2*dt[i-1])))
+  rm.eps[i] ~ dnorm(rm.eps[i-1]*(rm.phi^dt[i-1]), rm.pc[i])T(-0.3, 0.3)
+  rm[i] <- rm[1] * (1 + rm.eps[i])
+  
+
 }
 ############################################################################################ 
 

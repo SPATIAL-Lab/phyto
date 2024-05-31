@@ -167,7 +167,7 @@ for (i in 1:length(d13Cmarker.data.gig)){
   # Calculate instantaneous growth rate (mu,i) from [PO4] and rmean
   mui.gig[i] <- coeff.po4*po4.gig[i] + coeff.rm*rm.gig[i] + mui.y.int
   # Calculate Qs (the co2 flux into the cell per unit surface area of the cell membrane)
-  Qr.gig[i] <- mui.gig[i]/log(2) * gam.c[i]
+  Qr.gig[i] <- mui.gig[i]/log(2) * gam.c.gig[i]
   Qs.gig[i] <- Qr.gig[i] / (4*3.141593*(rm.gig[i]^2))
   #	Calculate b in uM from Qs, rmean, rK, DT, Pc, eps.f and eps.d using eqn. 15 of Rau et al (1996)
   b.gig[i] <- ((eps.f - eps.d) * Qs.gig[i] * ((rm.gig[i]/((1 + rm.gig[i]/rk.gig[i])*DT.gig[i])) + 1/P.c)) * 10^3
