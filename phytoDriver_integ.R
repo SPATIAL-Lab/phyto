@@ -249,7 +249,7 @@ parms = c("tempC", "sal", "pco2", "pco2.gig", "d13C.co2", "po4", "rm", "b", "coe
 # Run the inversion using jags 
 ############################################################################################
 inv.out = jags.parallel(data = data.pass, model.file = "phytoPSM_integ.R", parameters.to.save = parms,
-                          inits = NULL, n.chains = 3, n.iter = 5e5,
+                          inits = NULL, n.chains = 3, n.iter = 1e6,
                           n.burnin = 2e5, n.thin = 100)
 
 ############################################################################################
